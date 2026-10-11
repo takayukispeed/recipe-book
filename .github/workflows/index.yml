@@ -1,0 +1,24 @@
+# Rebuild INDEX.md whenever recipes or meals change (including edits made in the app).
+name: Rebuild index
+on:
+  push:
+    branches: [main]
+    paths: ["recipes/**", "meals/**", "scripts/build_index.py"]
+permissions:
+  contents: write
+concurrency:
+  group: index
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/build_index.py
+      - name: Commit if changed
+        run: |
+          git diff --quiet INDEX.md && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Rebuild index"
+          git pull --rebase origin main
+          git push
