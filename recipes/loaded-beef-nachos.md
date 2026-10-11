@@ -30,15 +30,6 @@ source:
 - 3 cups (300 g) shredded cheese (cheddar and Monterey Jack)
 - ¼ cup (60 mL) pickled jalapeños, or 2 fresh, sliced
 
-### Toppings
-
-- 1 tomato, diced, or salsa
-- 2 green onions, sliced
-- ½ cup (125 mL) sour cream
-- 1 avocado, or guacamole
-- Fresh cilantro
-- Lime wedges
-
 ## Method
 
 1. **Heat the oven** to 400°F (200°C). Line a large rimmed baking tray with parchment.
@@ -48,9 +39,8 @@ source:
 5. **Layer 2:** repeat on top, keeping the toppings spread out to the edges.
 6. **Layer 3:** finish with the last of the chips and fillings, ending with the remaining cheese so the top is well covered.
 7. **Bake** for 10–12 min, until the cheese is melted and bubbling at the edges. Check at 8 min so the chip edges don't scorch.
-8. **Top and serve straight away:** scatter the tomato, green onions and cilantro over the hot nachos. Dollop on the sour cream and avocado, and serve with lime wedges.
+8. **Serve straight away**, right off the tray, while the cheese is still molten.
 
 ## Notes
 
-- Keep the wet toppings (sour cream, avocado, salsa) off until after baking, or the chips go soggy.
 - With three layers, some cheese reaches the lower chips. For extra melt through the middle, give it a final 1–2 min under the broiler, but watch it closely.
