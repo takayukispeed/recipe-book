@@ -36,7 +36,7 @@ source:
 2. **Cook the beef:** brown the beef in a skillet over medium-high heat, breaking it up, for 6–8 min. Drain off excess fat. Stir in the chili powder, cumin, paprika, garlic powder, a pinch of salt and pepper, and 2–3 Tbsp (30–45 mL) water. Simmer 2 min until the spices coat the meat.
 3. **Prep the layers:** divide the chips, beef, beans, peppers, onion, jalapeños and cheese into **three equal portions**.
 4. **Layer 1:** spread a third of the chips over the tray in a slightly overlapping single layer. Scatter over a third of the beef, beans, peppers, onion and jalapeños, then a third of the cheese.
-5. **Layer 2:** repeat on top, keeping the toppings spread out to the edges.
+5. **Layer 2:** repeat on top, keeping the fillings spread out to the edges.
 6. **Layer 3:** finish with the last of the chips and fillings, ending with the remaining cheese so the top is well covered.
 7. **Bake** for 10–12 min, until the cheese is melted and bubbling at the edges. Check at 8 min so the chip edges don't scorch.
 8. **Serve straight away**, right off the tray, while the cheese is still molten.
