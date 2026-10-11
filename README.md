@@ -32,8 +32,9 @@ The app is a home-screen web app. It is free, needs no App Store, and works offl
 **One-time setup on GitHub** (on a computer, or in Safari on the phone):
 
 1. Open the repo's **Settings → Pages**.
-2. Under *Build and deployment*, choose **Source: Deploy from a branch**, **Branch: `main`**, **folder: `/ (root)`**, then **Save**.
-3. After a minute or two, the app is live at https://takayukispeed.github.io/recipe-book/.
+2. Under *Build and deployment*, set **Source: GitHub Actions**.
+3. The `Deploy app` workflow (`.github/workflows/pages.yml`) publishes the app on every push to `main`. It also appears in the Actions tab with a pass or fail.
+4. The app is live at https://takayukispeed.github.io/recipe-book/.
 
 **On the iPhone:**
 
