@@ -146,6 +146,19 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
 }
 .mini { border: 0; background: none; color: var(--accent); font-size: 14px; text-transform: none; letter-spacing: 0; padding: 4px; }
 
+.scale {
+  display: flex; gap: 4px; padding: 3px; margin-bottom: 10px;
+  background: var(--line); border-radius: 10px;
+}
+.scale button {
+  flex: 1; min-height: 36px; border: 0; border-radius: 8px; background: transparent;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.scale button.on { background: var(--accent); color: var(--accent-text); }
+.scale-note { margin: -4px 0 10px; font-size: 14px; color: var(--muted); }
+.scaled { color: var(--accent); font-weight: 600; }
+.ing.done .scaled { color: inherit; font-weight: inherit; }
+
 .ingredients, .steps, .components {
   list-style: none; margin: 0; padding: 0;
   background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;

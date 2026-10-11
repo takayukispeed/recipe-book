@@ -12,7 +12,7 @@ source:
 
 ### Bread
 
-- 4 ciabatta rolls, or 1 large loaf cut into 4
+- 4 ciabatta rolls
 
 ### Meats
 
@@ -37,3 +37,5 @@ source:
 - Extra-virgin olive oil, for drizzling (optional)
 
 ## Notes
+
+- Or use 1 large ciabatta loaf and cut it into 4.

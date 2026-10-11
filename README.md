@@ -58,6 +58,7 @@ The home-screen app has its own storage, separate from Safari, so add the token 
 
 - **Search** matches titles, tags *and* ingredients, e.g. "pancetta". Tap a tag chip to filter.
 - **Ingredients:** tap to tick them off as you prep. **Reset** clears them.
+- **Scale:** ½× to 3× buttons above the ingredients multiply every amount (imperial and metric) and the servings. Scaled numbers are highlighted. Amounts written inside method steps aren't scaled.
 - **Method:** tap a step to highlight where you are.
 - **Keep screen on while cooking:** a toggle at the bottom of each recipe.
 - **Meals:** build them from free-text lines plus links to recipes ("Add a recipe" picker).

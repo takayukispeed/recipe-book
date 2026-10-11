@@ -1,6 +1,6 @@
 import {
   parseRecipe, serializeRecipe, parseMeal, serializeMeal,
-  slugify, inline, block, escapeHtml as esc,
+  slugify, inline, block, escapeHtml as esc, scaleLine,
 } from "./format.js";
 
 // ---- Config ---------------------------------------------------------------
@@ -34,6 +34,7 @@ const state = {
   tag: null,
   checked: {}, // path -> Set of ingredient indexes ticked off this session
   step: {}, // path -> index of the highlighted method step
+  scale: {}, // path -> multiplier chosen this session
   syncing: false,
   syncError: null,
   lastSync: null,
@@ -277,10 +278,15 @@ function sourceHtml(src) {
 function recipeView(r) {
   const checked = state.checked[r.path] ||= new Set();
   const step = state.step[r.path];
+  const factor = state.scale[r.path] || 1;
+  // Scaled amounts are wrapped in private-use markers by scaleLine, then highlighted.
+  const scaled = (line) => inline(scaleLine(line, factor, { mark: true }))
+    .replace(/\uE000/g, '<span class="scaled">').replace(/\uE001/g, "</span>");
   let n = 0;
   const ingredients = r.ingredients.map((line, i) => line.startsWith("#")
     ? `<li class="sub">${inline(line.replace(/^#+\s*/, ""))}</li>`
-    : `<li class="ing ${checked.has(i) ? "done" : ""}" data-i="${i}"><span class="tick"></span><span>${inline(line)}</span></li>`).join("");
+    : `<li class="ing ${checked.has(i) ? "done" : ""}" data-i="${i}"><span class="tick"></span><span>${scaled(line)}</span></li>`).join("");
+  const SCALES = [[0.5, "½×"], [1, "1×"], [1.5, "1½×"], [2, "2×"], [3, "3×"]];
   const steps = r.method.map((line, i) => line.startsWith("#")
     ? `<li class="sub">${inline(line.replace(/^#+\s*/, ""))}</li>`
     : `<li class="step ${step === i ? "current" : ""}" data-i="${i}"><span class="num">${++n}</span><span>${inline(line)}</span></li>`).join("");
@@ -291,12 +297,16 @@ function recipeView(r) {
       <h1>${esc(r.title)}</h1>
       <p class="meta">
         <span class="badge ${r.type}">${r.type === "full" ? "Full method" : "Ingredients"}</span>
-        ${r.serves ? `<span>Serves ${esc(r.serves)}</span>` : ""}
+        ${r.serves ? `<span>Serves ${scaled(r.serves)}</span>` : ""}
         ${r.time ? `<span>${esc(r.time)}</span>` : ""}
       </p>
       ${r.intro ? `<div class="intro">${block(r.intro)}</div>` : ""}
       <section>
         <h2>Ingredients ${r.ingredients.length ? `<button id="reset" class="mini" ${checked.size ? "" : "hidden"}>Reset</button>` : ""}</h2>
+        ${r.ingredients.length ? `<div class="scale" role="group" aria-label="Scale amounts">
+          ${SCALES.map(([f, label]) => `<button data-f="${f}" class="${f === factor ? "on" : ""}" aria-pressed="${f === factor}">${label}</button>`).join("")}
+        </div>` : ""}
+        ${factor !== 1 && r.method.length ? `<p class="scale-note">Amounts mentioned in the method are for 1×.</p>` : ""}
         ${r.ingredients.length ? `<ul class="ingredients">${ingredients}</ul>` : `<p class="empty">None listed.</p>`}
       </section>
       ${r.method.length ? `<section><h2>Method</h2><ol class="steps">${steps}</ol></section>` : ""}
@@ -317,6 +327,9 @@ function recipeView(r) {
     };
   });
   $("#reset")?.addEventListener("click", () => { checked.clear(); render(); });
+  app.querySelectorAll(".scale button").forEach((b) => {
+    b.onclick = () => { state.scale[r.path] = Number(b.dataset.f); render(); };
+  });
   app.querySelectorAll(".step").forEach((li) => {
     li.onclick = (e) => {
       if (e.target.closest("a")) return;

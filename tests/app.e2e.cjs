@@ -89,6 +89,17 @@ async function mockGitHub(route) {
   await page.locator(".step").nth(2).click();
   assert.equal(await page.locator(".step.current").count(), 1);
   await shot("2-recipe");
+
+  // Scaling: 2× doubles amounts and servings, 1× restores the original text
+  await page.click(".scale button:has-text('2×')");
+  assert.match(await page.locator(".ing").nth(1).innerText(), /^6 Tbsp \(90 g\) butter, plus 2 Tbsp \(30 g\)/);
+  assert.match(await page.locator(".meta").innerText(), /Serves 12/);
+  assert.ok(await page.locator(".scale-note").isVisible());
+  assert.equal(await page.locator(".ing.done").count(), 1, "ticks survive scaling");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await shot("2b-recipe-scaled");
+  await page.click(".scale button:has-text('1×')");
+  assert.match(await page.locator(".ing").nth(1).innerText(), /^3 Tbsp \(45 g\) butter/);
   await page.evaluate(() => window.scrollTo(0, 900));
   await shot("3-recipe-method");
 

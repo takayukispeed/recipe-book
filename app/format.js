@@ -165,3 +165,88 @@ export function block(md) {
 }
 
 export { escapeHtml };
+
+// ---- Scaling --------------------------------------------------------------
+// Scales the quantities in one ingredient line by `factor`:
+//  • the number that starts the line ("8 corn tortillas", "½ red onion"), and
+//  • any number followed by a unit anywhere in the line ("(240 mL)", "2 tsp").
+// Bare numbers mid-line ("cut into 4") and dimensions ("2-inch (5 cm)") are left alone.
+const FRACS = { "½": 1 / 2, "¼": 1 / 4, "¾": 3 / 4, "⅓": 1 / 3, "⅔": 2 / 3, "⅛": 1 / 8, "⅜": 3 / 8, "⅝": 5 / 8, "⅞": 7 / 8 };
+const FC = Object.keys(FRACS).join("");
+const NUM = `\\d+(?:\\.\\d+)?\\s?[${FC}]|\\d+\\s+\\d+\\/\\d+|\\d+\\/\\d+|\\d+(?:\\.\\d+)?|[${FC}]`;
+const UNITS = "cups?|tbsps?|tablespoons?|tsps?|teaspoons?|lbs?|pounds?|oz|ounces?|kg|g|grams?|ml|l|litres?|liters?"
+  + "|cans?|sheets?|cloves?|slices?|bags?|boxes|box|bunch(?:es)?|sprigs?|stalks?|heads?|pinch(?:es)?|sticks?|packages?|jars?|bottles?";
+const QTY = new RegExp(`(^|[^\\w.\\/])(${NUM})(?:(\\s*[–-]\\s*)(${NUM}))?(?:(\\s*)(${UNITS})(?![\\w]))?`, "gi");
+const PLURALS = {
+  cup: "cups", can: "cans", sheet: "sheets", clove: "cloves", slice: "slices", bag: "bags", box: "boxes",
+  bunch: "bunches", sprig: "sprigs", stalk: "stalks", head: "heads", pinch: "pinches", stick: "sticks",
+  package: "packages", jar: "jars", bottle: "bottles",
+};
+const SINGULARS = Object.fromEntries(Object.entries(PLURALS).map(([s, p]) => [p, s]));
+
+export function parseNumber(s) {
+  s = s.trim();
+  let m;
+  if ((m = s.match(/^(\d+(?:\.\d+)?)\s?([^\d\s])$/)) && FRACS[m[2]]) return Number(m[1]) + FRACS[m[2]];
+  if ((m = s.match(/^(\d+)\s+(\d+)\/(\d+)$/))) return Number(m[1]) + Number(m[2]) / Number(m[3]);
+  if ((m = s.match(/^(\d+)\/(\d+)$/))) return Number(m[1]) / Number(m[2]);
+  if (FRACS[s]) return FRACS[s];
+  return Number(s);
+}
+
+function fraction(v) {
+  if (v >= 10) return String(Math.round(v * 2) / 2).replace(/\.5$/, "½");
+  const opts = [[0, ""], [1 / 8, "⅛"], [1 / 4, "¼"], [1 / 3, "⅓"], [3 / 8, "⅜"], [1 / 2, "½"], [5 / 8, "⅝"], [2 / 3, "⅔"], [3 / 4, "¾"], [7 / 8, "⅞"], [1, ""]];
+  let whole = Math.floor(v);
+  const rem = v - whole;
+  let [val, sym] = opts.reduce((best, o) => (Math.abs(o[0] - rem) < Math.abs(best[0] - rem) ? o : best));
+  if (val === 1) whole += 1;
+  if (!whole && !sym) return "⅛";
+  return `${whole || ""}${sym}`;
+}
+
+const trim = (v) => String(Math.round(v * 10) / 10);
+const isMetric = (u) => /^(g|grams?|kg|ml|l|litres?|liters?)$/i.test(u || "");
+
+function metric(v, unit) {
+  const u = unit.toLowerCase();
+  const small = /^(g|grams?|ml)$/.test(u);
+  if (small) {
+    if (v < 1) return trim(v);
+    if (v < 10) return String(Math.round(v * 2) / 2);
+    if (v < 100) return String(Math.round(v / 5) * 5);
+    return String(Math.round(v / 10) * 10);
+  }
+  return v < 10 ? trim(v) : String(Math.round(v));
+}
+
+export function scaleLine(line, factor, { mark = false } = {}) {
+  if (factor === 1) return line;
+  const wrap = (s) => (mark ? `${s}` : s);
+  return line.replace(QTY, (m, pre, a, sep, b, sp, unit, offset) => {
+    const leading = offset === 0 && pre === "";
+    if (!unit && !leading) return m;
+    let lo = parseNumber(a) * factor;
+    let hi = b !== undefined ? parseNumber(b) * factor : null;
+    let u = unit || "";
+    let fmt;
+    if (isMetric(u)) {
+      // 1200 g → 1.2 kg, 1080 mL → 1.1 L
+      if (/^(g|grams?|ml)$/i.test(u) && (hi ?? lo) >= 1000) {
+        lo /= 1000; if (hi !== null) hi /= 1000;
+        u = /^ml$/i.test(u) ? "L" : "kg";
+      }
+      fmt = (v) => metric(v, u);
+    } else if (a.includes(".") || (b || "").includes(".")) {
+      fmt = trim;
+    } else {
+      fmt = fraction;
+    }
+    const lower = u.toLowerCase();
+    const many = (hi ?? lo) > 1;
+    if (many && PLURALS[lower]) u = PLURALS[lower];
+    if (!many && SINGULARS[lower]) u = SINGULARS[lower];
+    const qty = hi !== null ? `${fmt(lo)}${sep}${fmt(hi)}` : fmt(lo);
+    return `${pre}${wrap(`${qty}${unit ? sp + u : ""}`)}`;
+  });
+}
