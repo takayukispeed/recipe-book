@@ -34,6 +34,7 @@ source:
 - ½ cup (125 mL) fire-roasted red peppers or pickled hot peppers, sliced
 - 1 cup (30 g) baby spinach
 - 1 cup (20 g) fresh basil leaves
+- Honey
 - Extra-virgin olive oil, for drizzling (optional)
 
 ## Notes
