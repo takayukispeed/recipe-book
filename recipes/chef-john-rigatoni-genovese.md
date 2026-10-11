@@ -13,20 +13,20 @@ Neapolitan beef-and-onion ragù. No tomatoes beyond a spoon of paste; the onions
 
 ## Ingredients
 
-- 1 Tbsp olive oil
-- 6 oz pancetta or salt pork, diced
-- 2½ lb beef chuck, cut into ~2-inch chunks, seasoned with 2 tsp kosher salt
-- ½ cup diced celery
-- ½ cup diced carrot
-- 1 rounded Tbsp tomato paste
-- 1 tsp freshly ground black pepper
+- 1 Tbsp (15 mL) olive oil
+- 6 oz (170 g) pancetta or salt pork, diced
+- 2½ lb (1.1 kg) beef chuck, cut into ~2-inch (5 cm) chunks, seasoned with 2 tsp (10 mL) kosher salt
+- ½ cup (120 mL, ≈60 g) diced celery
+- ½ cup (120 mL, ≈65 g) diced carrot
+- 1 rounded Tbsp (≈20 g) tomato paste
+- 1 tsp (5 mL) freshly ground black pepper
 - 1 bay leaf
-- ⅔ cup dry white wine (optional)
-- 4 lb yellow onions, thinly sliced
-- 2 lb red onions, thinly sliced
+- ⅔ cup (160 mL) dry white wine (optional)
+- 4 lb (1.8 kg) yellow onions, thinly sliced
+- 2 lb (900 g) red onions, thinly sliced
 - Water or broth, as needed
 - To finish: fresh marjoram, pinch of cayenne, salt and pepper to taste
-- To serve: rigatoni (two 1-lb boxes for the full batch), grated Parmigiano-Reggiano
+- To serve: rigatoni (two 1-lb / 450–500 g boxes for the full batch), grated Parmigiano-Reggiano
 
 ## Method
 
@@ -42,4 +42,5 @@ Neapolitan beef-and-onion ragù. No tomatoes beyond a spoon of paste; the onions
 ## Notes
 
 - The quantities follow a transcription of the 2016 Food Wishes post ([gist](https://gist.github.com/murtaugh/25f148dc3583bfda711ec9d78fa62ad2)). Check them against the [original post](https://foodwishes.blogspot.com/2016/03/rigatoni-alla-genovese-maybe-best-meat.html) or video if anything looks off.
+- Metric amounts are rounded conversions; the ≈ weights for chopped vegetables are estimates.
 - It freezes well; the full batch is far more sauce than one meal needs.

@@ -26,6 +26,8 @@ scripts/     build_index.py regenerates INDEX.md
 2. Fill in the front matter (`title`, `tags`, `serves`, `source`) and the body.
 3. Run `python3 scripts/build_index.py` to update the index.
 
+Write amounts as imperial first with metric in brackets, e.g. `1 cup (240 mL) whole milk`, `2½ lb (1.1 kg) beef chuck`.
+
 Tags are free-form. Some suggestions: `weeknight`, `project`, `freezer`, `pasta`, `vegetarian`, `breakfast`, `baking`.
 
 ## Sources and copying
