@@ -18,8 +18,8 @@ Use a heavy pot that holds heat well (enamelled cast iron, or earthenware on a d
 - ½ cup (120 mL, ≈70 g) chopped onion
 - ⅔ cup (160 mL, ≈80 g) chopped celery
 - ⅔ cup (160 mL, ≈85 g) chopped carrot
-- ¾ lb (340 g) ground beef chuck (fattier is better)
-- ¾ lb (340 g) ground pork
+- 6 oz (170 g) ground beef chuck (fattier is better)
+- 6 oz (170 g) ground pork
 - Salt
 - Black pepper, freshly ground
 - 1 cup (240 mL) whole milk
@@ -42,7 +42,7 @@ Use a heavy pot that holds heat well (enamelled cast iron, or earthenware on a d
 
 ## Notes
 
-- **My version:** double the meat, half beef and half pork. Hazan's book has ¾ lb (340 g) of beef chuck alone; every other amount is hers, unchanged. Season the larger amount of meat a little more generously.
+- **My version:** half beef, half pork, in place of Hazan's ¾ lb (340 g) of beef chuck alone. I usually make it at **2×**.
 - 1½ cups (360 mL) of tomatoes is most of a 398 mL can.
 - **Order matters:** the milk goes in *before* the wine and tomatoes. Hazan's reasoning was that it protects the meat from the acidity.
 - Different editions vary slightly in the meat (beef alone, or beef and pork), the amount of tomato, and the timing. **Check these quantities against your own copy of the book.** One reprint credited to the book appeared in the [Seattle Times (2006)](https://archive.seattletimes.com/archive/20060510/bolognese10/recipe-marcella-hazans-bolognese-sauce).
