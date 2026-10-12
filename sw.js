@@ -1,6 +1,6 @@
 // Offline support for the app shell. Recipe data is cached by the app itself
 // (localStorage), and GitHub API requests are never intercepted here.
-const CACHE = "recipe-book-v5";
+const CACHE = "recipe-book-v6";
 const SHELL = [
   "./",
   "index.html",
@@ -19,7 +19,8 @@ self.addEventListener("install", (e) => {
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      // Only this app's old caches: other apps on the same github.io address share this storage.
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("recipe-book-") && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
