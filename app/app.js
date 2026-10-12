@@ -1,6 +1,7 @@
 import {
   parseRecipe, serializeRecipe, parseMeal, serializeMeal,
   slugify, inline, block, escapeHtml as esc, scaleLine,
+  parseList, serializeList, listToText, textToList,
 } from "./format.js";
 
 // ---- Config ---------------------------------------------------------------
@@ -18,6 +19,8 @@ const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
 const KEY_CACHE = "rb.files.v1";
 const KEY_TOKEN = "rb.token";
 const KEY_HINT = "rb.installHintDismissed";
+const KEY_TICKS = "rb.staples.ticked";
+const STAPLES = "lists/staples.md";
 
 // ---- Storage (wrapped: private mode can make localStorage throw) ----------
 const store = {
@@ -30,6 +33,7 @@ const state = {
   files: JSON.parse(store.get(KEY_CACHE) || "{}"), // path -> { sha, text }
   recipes: [],
   meals: [],
+  staples: { title: "Staples", sections: [] },
   query: "",
   tag: null,
   checked: {}, // path -> Set of ingredient indexes ticked off this session
@@ -91,7 +95,7 @@ async function sync({ quiet = false } = {}) {
   updateSyncButton();
   try {
     const tree = await (await gh(`/git/trees/${BRANCH}?recursive=1`)).json();
-    const wanted = tree.tree.filter((e) => e.type === "blob" && /^(recipes|meals)\/[^/]+\.md$/.test(e.path));
+    const wanted = tree.tree.filter((e) => e.type === "blob" && /^(recipes|meals|lists)\/[^/]+\.md$/.test(e.path));
     const next = {};
     const todo = [];
     for (const e of wanted) {
@@ -150,6 +154,7 @@ function rebuild() {
     .map(([path, f]) => ({ path, ...parseRecipe(f.text) })).sort(byTitle);
   state.meals = entries.filter(([p]) => p.startsWith("meals/"))
     .map(([path, f]) => ({ path, ...parseMeal(f.text) })).sort(byTitle);
+  state.staples = state.files[STAPLES] ? parseList(state.files[STAPLES].text) : { title: "Staples", sections: [] };
 }
 
 function uniquePath(folder, title) {
@@ -191,6 +196,132 @@ const isStandalone = () => window.navigator.standalone === true
 const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent);
 
 // ---- Views ----------------------------------------------------------------
+function topBar(title) {
+  return `<header class="bar">
+      <h1>${title}</h1>
+      <div class="bar-actions">
+        <button id="sync" class="icon-btn" aria-label="Sync with GitHub">${ICON.sync}</button>
+        <a class="icon-btn" href="#/settings" aria-label="Settings">${ICON.gear}</a>
+      </div>
+    </header>`;
+}
+
+function tabs(active) {
+  const tab = (href, kind, label) => `<a href="${href}" class="${active === kind ? "on" : ""}">${label}</a>`;
+  return `<nav class="segmented" aria-label="Section">
+      ${tab("#/", "recipes", "Recipes")}${tab("#/meals", "meals", "Meals")}${tab("#/staples", "staples", "Staples")}
+    </nav>`;
+}
+
+// ---- Staples: the grocery-store list --------------------------------------
+const loadTicks = () => { try { return new Set(JSON.parse(store.get(KEY_TICKS) || "[]")); } catch { return new Set(); } };
+const saveTicks = (ticks) => store.set(KEY_TICKS, JSON.stringify([...ticks]));
+
+function staplesView() {
+  const list = state.staples;
+  const ticks = loadTicks();
+  const sectionNames = list.sections.map((s) => s.name).filter(Boolean);
+  const loading = !state.lastSync && !Object.keys(state.files).length;
+
+  app.innerHTML = `
+    ${topBar("Staples")}
+    ${tabs("staples")}
+    <form id="add-form" class="add-row" ${token() ? "" : "hidden"}>
+      <input id="staple-add" placeholder="Add an item…" autocomplete="off" enterkeyhint="done">
+      <select id="staple-section" aria-label="Section">
+        ${sectionNames.map((n) => `<option ${n === state.lastSection ? "selected" : ""}>${esc(n)}</option>`).join("")}
+        <option value="__new">New section…</option>
+      </select>
+      <button class="add-btn" aria-label="Add">${ICON.plus}</button>
+    </form>
+    <input id="search" type="search" placeholder="Search staples" value="${esc(state.staplesQuery || "")}" autocomplete="off" autocorrect="off">
+    <div id="results"></div>
+    <div class="list-actions">
+      <button id="clear-ticks" class="text-btn" hidden>Clear ticks</button>
+      <a class="text-btn" href="#/edit/${STAPLES}">Edit list</a>
+    </div>
+  `;
+
+  const show = () => {
+    const q = (state.staplesQuery || "").trim().toLowerCase();
+    const sections = list.sections
+      .map((s) => ({ ...s, items: s.items.filter((i) => !q || i.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)) }))
+      .filter((s) => s.items.length);
+    $("#results").innerHTML = sections.length ? sections.map((s) => `
+      ${s.name ? `<h2 class="list-heading">${esc(s.name)}</h2>` : ""}
+      <ul class="ingredients staples">${s.items.map((i) => `
+        <li class="ing ${ticks.has(i) ? "done" : ""}" data-item="${esc(i)}"><span class="tick"></span><span>${inline(i)}</span></li>`).join("")}
+      </ul>`).join("")
+      : `<p class="empty">${list.sections.length ? "Nothing matches." : loading ? "Loading…" : "No staples yet. Add the things you buy often."}</p>`;
+    $("#clear-ticks").hidden = !ticks.size;
+    app.querySelectorAll(".staples .ing").forEach((li) => {
+      li.onclick = (e) => {
+        if (e.target.closest("a")) return;
+        const item = li.dataset.item;
+        ticks.has(item) ? ticks.delete(item) : ticks.add(item);
+        saveTicks(ticks);
+        li.classList.toggle("done");
+        $("#clear-ticks").hidden = !ticks.size;
+      };
+    });
+  };
+  show();
+
+  $("#sync").onclick = () => sync();
+  updateSyncButton();
+  $("#search").oninput = (e) => { state.staplesQuery = e.target.value; show(); };
+  $("#clear-ticks").onclick = () => { ticks.clear(); saveTicks(ticks); show(); };
+
+  const select = $("#staple-section");
+  select.onchange = () => {
+    if (select.value !== "__new") return;
+    const name = (prompt("New section name (e.g. Dairy, Snacks, Household)") || "").trim();
+    if (!name) { select.selectedIndex = 0; return; }
+    const opt = new Option(name, name, true, true);
+    select.insertBefore(opt, select.lastElementChild);
+  };
+  $("#add-form").onsubmit = (e) => {
+    e.preventDefault();
+    const input = $("#staple-add");
+    const item = input.value.trim();
+    const section = select.value === "__new" ? "" : select.value;
+    if (!item) return;
+    withBusy($(".add-btn"), async () => {
+      const next = structuredClone(list);
+      let s = next.sections.find((x) => x.name === section);
+      if (!s) { s = { name: section, items: [] }; next.sections.push(s); }
+      s.items.push(item);
+      await saveFile(STAPLES, serializeList(next), `Add staple: ${item}`);
+      state.lastSection = section;
+      state.staplesQuery = "";
+      toast(`Added ${item}`);
+      render();
+      $("#staple-add")?.focus();
+    });
+  };
+}
+
+function staplesEditor() {
+  const list = state.staples;
+  app.innerHTML = `
+    ${backBar("#/staples", "Cancel", `<button class="text-btn strong" id="save" ${token() ? "" : "disabled"}>Save</button>`)}
+    <form class="editor" onsubmit="return false">
+      <h1>Edit staples</h1>
+      ${tokenBanner()}
+      ${area("list-text", "Items", listToText(list), "one per line · a line ending in : starts a section, e.g. Frozen:", 18)}
+    </form>
+  `;
+  $("#save").onclick = () => withBusy($("#save"), async () => {
+    const next = textToList($("#list-text").value, list.title);
+    await saveFile(STAPLES, serializeList(next), "Update staples");
+    // Drop ticks for items that no longer exist.
+    const names = new Set(next.sections.flatMap((s) => s.items));
+    saveTicks(new Set([...loadTicks()].filter((i) => names.has(i))));
+    toast("Saved");
+    location.hash = "#/staples";
+  });
+}
+
 function listView(kind) {
   const isMeals = kind === "meals";
   const items = isMeals ? state.meals : state.recipes;
@@ -199,19 +330,10 @@ function listView(kind) {
   const showHint = isIOS() && !isStandalone() && !store.get(KEY_HINT);
 
   app.innerHTML = `
-    <header class="bar">
-      <h1>${isMeals ? "Meals" : "Recipes"}</h1>
-      <div class="bar-actions">
-        <button id="sync" class="icon-btn" aria-label="Sync with GitHub">${ICON.sync}</button>
-        <a class="icon-btn" href="#/settings" aria-label="Settings">${ICON.gear}</a>
-      </div>
-    </header>
+    ${topBar(isMeals ? "Meals" : "Recipes")}
     ${showHint ? `<div class="hint"><span>Tap <strong>Share</strong> then <strong>Add to Home Screen</strong> to install this as an app.</span>
       <button id="hint-close" aria-label="Dismiss">✕</button></div>` : ""}
-    <nav class="segmented" aria-label="Section">
-      <a href="#/" class="${isMeals ? "" : "on"}">Recipes</a>
-      <a href="#/meals" class="${isMeals ? "on" : ""}">Meals</a>
-    </nav>
+    ${tabs(kind)}
     <input id="search" type="search" placeholder="Search ${isMeals ? "meals" : "titles, tags, ingredients"}"
       value="${esc(state.query)}" autocomplete="off" autocorrect="off">
     ${tags.length ? `<div class="chips">
@@ -520,7 +642,7 @@ function settingsView() {
       </section>
       <section class="panel">
         <h2>Data</h2>
-        <p>${state.recipes.length} recipes and ${state.meals.length} meals cached for offline use.
+        <p>${state.recipes.length} recipes, ${state.meals.length} meals and ${state.staples.sections.reduce((n, s) => n + s.items.length, 0)} staples cached for offline use.
           ${state.lastSync ? `Last synced ${state.lastSync.toLocaleTimeString()}.` : ""}</p>
         <div class="buttons"><button id="resync">Re-download everything</button></div>
       </section>
@@ -585,6 +707,8 @@ function render() {
   let m;
   if (route === "/" || route === "") return listView("recipes");
   if (route === "/meals") return listView("meals");
+  if (route === "/staples") return staplesView();
+  if (route === `/edit/${STAPLES}`) return staplesEditor();
   if (route === "/settings") return settingsView();
   if (route === "/new/recipe") return recipeEditor(null);
   if (route === "/new/meal") return mealEditor(null);
@@ -602,7 +726,8 @@ function render() {
 }
 
 // Background syncs must not redraw over a form someone is typing in.
-const editing = () => /^#\/(edit|new)\//.test(location.hash) || location.hash === "#/settings";
+const editing = () => /^#\/(edit|new)\//.test(location.hash) || location.hash === "#/settings"
+  || (document.activeElement?.id === "staple-add" && document.activeElement.value);
 function safeRender() { if (!editing()) render(); }
 
 window.addEventListener("hashchange", render);

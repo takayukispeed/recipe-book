@@ -250,3 +250,51 @@ export function scaleLine(line, factor, { mark = false } = {}) {
     return `${pre}${wrap(`${qty}${unit ? sp + u : ""}`)}`;
   });
 }
+
+// ---- Lists (e.g. lists/staples.md) ----------------------------------------
+// "## Section" headings, each followed by "- item" lines.
+export function parseList(text) {
+  const { meta, body } = parseFrontMatter(text);
+  const sections = [];
+  let current = null;
+  for (const raw of body.split("\n")) {
+    const line = raw.trim();
+    const h = line.match(/^##\s+(.*)$/);
+    if (h) { current = { name: h[1].trim(), items: [] }; sections.push(current); continue; }
+    const item = line.match(/^[-*]\s+(.*)$/);
+    if (item) {
+      if (!current) { current = { name: "", items: [] }; sections.push(current); }
+      current.items.push(item[1].trim());
+    }
+  }
+  return { title: meta.title || "Staples", sections };
+}
+
+export function serializeList(list) {
+  const out = ["---", fm("title", list.title), "---", "", `# ${list.title}`, ""];
+  for (const s of list.sections) {
+    if (!s.items.length) continue;
+    if (s.name) out.push(`## ${s.name}`, "");
+    for (const i of s.items) out.push(`- ${i}`);
+    out.push("");
+  }
+  return out.join("\n").replace(/\n{3,}/g, "\n\n");
+}
+
+// Plain-text form used by the list editor: a line ending in ":" starts a section.
+export function listToText(list) {
+  return list.sections.map((s) => [s.name ? `${s.name}:` : "", ...s.items].filter(Boolean).join("\n")).join("\n\n");
+}
+
+export function textToList(text, title) {
+  const sections = [];
+  let current = null;
+  for (const raw of text.split("\n")) {
+    const line = raw.trim().replace(/^[-*]\s+/, "");
+    if (!line) continue;
+    if (line.endsWith(":")) { current = { name: line.slice(0, -1).trim(), items: [] }; sections.push(current); continue; }
+    if (!current) { current = { name: "", items: [] }; sections.push(current); }
+    current.items.push(line);
+  }
+  return { title, sections };
+}

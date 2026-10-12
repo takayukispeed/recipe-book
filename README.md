@@ -10,6 +10,7 @@ All my recipes and meals in one place. They are stored as plain Markdown files i
 ```
 recipes/     one file per recipe
 meals/       combinations of recipes (e.g. "Sunday ragù dinner")
+lists/       staples.md: things you buy often, grouped by store section
 templates/   copy one of these to start something new by hand
 index.html   the app (plus app/, sw.js, manifest.webmanifest)
 scripts/     build_index.py regenerates INDEX.md (runs automatically on GitHub)
@@ -61,6 +62,7 @@ The home-screen app has its own storage, separate from Safari, so add the token 
 - **Scale:** ½× to 3× buttons above the ingredients multiply every amount (imperial and metric) and the servings. Scaled numbers are highlighted. Amounts written inside method steps aren't scaled.
 - **Method:** tap a step to highlight where you are.
 - **Keep screen on while cooking:** a toggle at the bottom of each recipe.
+- **Staples:** your regular grocery buys, grouped by store section. Tap items to tick them off in the store; ticks stay on the phone until you **Clear ticks**. Add items with the bar at the top, or rename, remove and reorder them with **Edit list**.
 - **Meals:** build them from free-text lines plus links to recipes ("Add a recipe" picker).
 
 ## Adding a recipe by hand

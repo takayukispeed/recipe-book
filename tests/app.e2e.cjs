@@ -24,7 +24,7 @@ const server = http.createServer((req, res) => {
 
 // In-memory fake of the repo, seeded from recipes/ and meals/.
 const repo = {};
-for (const dir of ["recipes", "meals"]) {
+for (const dir of ["recipes", "meals", "lists"]) {
   for (const f of fs.readdirSync(path.join(ROOT, dir)).filter((f) => f.endsWith(".md"))) {
     repo[`${dir}/${f}`] = fs.readFileSync(path.join(ROOT, dir, f), "utf8");
   }
@@ -160,6 +160,40 @@ source:
   await page.click(".components a");
   await page.waitForSelector("h1:has-text('Bolognese')");
 
+  // Staples: view, tick (persists across reload), quick-add, new section, edit
+  await page.goto(base + "#/staples");
+  await page.waitForSelector(".staples .ing");
+  assert.equal(await page.locator(".staples .ing").count(), 4);
+  assert.deepEqual(await page.locator(".list-heading").allInnerTexts(), ["DRINKS", "FROZEN", "PANTRY"].map((s) => s), "sections in order");
+  await page.click("text=Pizza Pops");
+  await page.reload();
+  await page.waitForSelector(".staples .ing.done");
+  assert.equal(await page.locator(".staples .ing.done").innerText(), "Pizza Pops");
+  await page.selectOption("#staple-section", "Frozen");
+  await page.fill("#staple-add", "Frozen berries");
+  await page.click(".add-btn");
+  await page.waitForSelector("text=Frozen berries");
+  assert.match(repo["lists/staples.md"], /## Frozen\n\n- Pizza Pops\n- Frozen berries\n/);
+  page.once("dialog", (d) => d.accept("Household"));
+  await page.selectOption("#staple-section", "__new");
+  await page.fill("#staple-add", "Paper towels");
+  await page.click(".add-btn");
+  await page.waitForSelector("text=Paper towels");
+  assert.match(repo["lists/staples.md"], /## Household\n\n- Paper towels\n$/);
+  await page.fill("#search", "mac");
+  assert.equal(await page.locator(".staples .ing").count(), 1);
+  await page.fill("#search", "");
+  await shot("7-staples");
+  await page.click("text=Edit list");
+  assert.match(await page.inputValue("#list-text"), /^Drinks:\nMontellier sparkling water\n\nFrozen:/);
+  await shot("8-staples-edit");
+  await page.fill("#list-text", (await page.inputValue("#list-text")).replace("Paper towels\n", "").replace("Paper towels", ""));
+  await page.click("#save");
+  await page.waitForURL(/#\/staples$/);
+  assert.ok(!repo["lists/staples.md"].includes("Household"), "empty section dropped");
+  await page.click("#clear-ticks");
+  assert.equal(await page.locator(".staples .ing.done").count(), 0);
+
   // Delete
   page.once("dialog", (d) => d.accept());
   await page.goto(base + "#/edit/recipes/weeknight-tacos.md");
@@ -175,7 +209,8 @@ source:
 
   assert.deepEqual(commits.map((c) => c.message), [
     "Add recipe: Weeknight Tacos", "Update recipe: Weeknight Tacos",
-    "Add meal: Sunday Ragù", "Delete recipe: Weeknight Tacos",
+    "Add meal: Sunday Ragù", "Add staple: Frozen berries", "Add staple: Paper towels", "Update staples",
+    "Delete recipe: Weeknight Tacos",
   ]);
   assert.deepEqual(errors, []);
   await browser.close();

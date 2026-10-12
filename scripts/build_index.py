@@ -55,6 +55,9 @@ def main():
         links = ", ".join(f"[{r['title']}]({r['link']})" for r in by_tag[tag])
         out.append(f"- **{tag}**: {links}")
 
+    out += ["", "## Lists", ""]
+    out += [f"- [{l['title']}]({l['link']})" for l in entries("lists")] or ["_None yet._"]
+
     out += ["", "## Meals", ""]
     out += [f"- [{m['title']}]({m['link']})" for m in meals] or ["_None yet._"]
 

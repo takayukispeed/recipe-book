@@ -3,7 +3,7 @@ name: Rebuild index
 on:
   push:
     branches: [main]
-    paths: ["recipes/**", "meals/**", "scripts/build_index.py"]
+    paths: ["recipes/**", "meals/**", "lists/**", "scripts/build_index.py"]
 permissions:
   contents: write
 concurrency:

@@ -216,3 +216,23 @@ details summary { cursor: pointer; color: var(--accent); font-size: 15px; paddin
   max-width: calc(100% - 32px); padding: 10px 16px; border-radius: 12px;
   background: var(--text); color: var(--bg); font-size: 15px; box-shadow: 0 4px 16px rgba(0, 0, 0, .2); z-index: 10;
 }
+
+/* ---- Staples ---- */
+.add-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.add-row input {
+  flex: 1; min-width: 0; padding: 11px 12px; font-size: 17px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+}
+.add-row select {
+  max-width: 38%; padding: 0 10px; font-size: 16px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+}
+.add-btn {
+  flex: none; display: grid; place-items: center; width: 46px; border: 0; border-radius: 10px;
+  background: var(--accent); color: var(--accent-text); cursor: pointer;
+}
+.list-heading {
+  font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 20px 0 8px;
+}
+.list-actions { display: flex; justify-content: space-between; margin-top: 16px; }
+.list-actions .text-btn:only-child { margin-left: auto; }

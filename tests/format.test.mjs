@@ -63,3 +63,16 @@ for (const f of readdirSync("recipes").filter((f) => f.endsWith(".md"))) {
   for (const line of rec.ingredients) { scaleLine(line, 2); assert.equal(scaleLine(line, 1), line); }
 }
 console.log("scaling tests passed");
+
+// Lists
+import { parseList, serializeList, listToText, textToList } from "../app/format.js";
+for (const f of readdirSync("lists").filter((f) => f.endsWith(".md"))) {
+  const text = readFileSync(`lists/${f}`, "utf8");
+  assert.equal(serializeList(parseList(text)), text, `round trip: lists/${f}`);
+  const list = parseList(text);
+  assert.deepEqual(textToList(listToText(list), list.title), list, `editor round trip: lists/${f}`);
+}
+const l = textToList("Drinks:\nSparkling water\n\nFrozen:\n- Pizza Pops\n", "Staples");
+assert.deepEqual(l.sections, [{ name: "Drinks", items: ["Sparkling water"] }, { name: "Frozen", items: ["Pizza Pops"] }]);
+assert.ok(!serializeList({ title: "S", sections: [{ name: "Empty", items: [] }] }).includes("Empty"));
+console.log("list tests passed");
