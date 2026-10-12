@@ -20,9 +20,9 @@ Pan-fried Japanese dumplings with store-bought wrappers: crisp on the bottom, st
 - 3 cloves garlic, grated
 - 1½ Tbsp (22 mL) grated fresh ginger
 - 1½ Tbsp (22 mL) soy sauce
-- 1½ Tbsp (22 mL) sake, or dry sherry
+- 1½ Tbsp (22 mL) sake, or mirin (if using mirin, skip the sugar)
 - 1 Tbsp (15 mL) toasted sesame oil
-- 1½ tsp (7 mL) sugar
+- 1½ tsp (7 mL) sugar (omit with mirin)
 - 1½ tsp (7 mL) potato starch or cornstarch
 - ½ tsp (2 mL) salt
 - ½ tsp (2 mL) white pepper
@@ -54,6 +54,7 @@ Pan-fried Japanese dumplings with store-bought wrappers: crisp on the bottom, st
 ## Notes
 
 - **Sized for one package:** about 800 g of filling in total, or about 16 g (1 Tbsp) per gyoza. Package counts vary by brand, roughly 40 to 60. If yours is on the small side, put a little more in each, or freeze any leftover filling for the next batch.
+- **Sake swaps:** Shaoxing wine or dry sherry, same amount, keeping the sugar. Or leave it out and add 1½ Tbsp (22 mL) more water or stock.
 - **To freeze:** freeze uncooked gyoza in a single layer on the tray, then bag them. Cook from frozen, adding 1–2 min to the steaming.
 - **Crispy "wings":** stir 1 tsp flour into the steaming water. It sets into a lacy crust joining the gyoza.
 - The cooking amounts in steps 4–7 are per batch: about 1 Tbsp (15 mL) oil and ⅓ cup (80 mL) water for 15–20 gyoza in a 10–12 inch pan.
