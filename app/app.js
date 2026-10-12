@@ -668,6 +668,13 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && !editing()) sync({ quiet: true });
 });
 
+// ---- No zooming: behave like an app, not a web page ------------------------
+// Backs up the viewport meta tag, which iOS Safari can ignore outside home-screen mode.
+for (const type of ["gesturestart", "gesturechange", "gestureend"]) {
+  document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+}
+document.addEventListener("touchmove", (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+
 // ---- App updates ----------------------------------------------------------
 // Check for a new version whenever the app comes to the foreground; when one takes over,
 // reload so the new code runs (unless a form is open, in which case the next open picks it up).
