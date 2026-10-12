@@ -1,4 +1,4 @@
-// Parse and serialize the Markdown recipe/meal files used in recipes/ and meals/.
+// Parse and serialize the Markdown files used in recipes/ and lists/.
 // Shared by the app (browser) and tests (Node).
 
 export function parseFrontMatter(text) {
@@ -95,28 +95,6 @@ export function serializeRecipe(r) {
   return out.join("\n").replace(/\n{3,}/g, "\n\n");
 }
 
-export function parseMeal(text) {
-  const { meta, body } = parseFrontMatter(text);
-  const { title, intro, sections } = splitSections(body);
-  return {
-    title: meta.title || title || "Untitled meal",
-    tags: asList(meta.tags),
-    intro,
-    components: listItems(sections.components),
-    notes: sections.notes || "",
-  };
-}
-
-export function serializeMeal(m) {
-  const out = ["---", fm("title", m.title), fm("tags", `[${(m.tags || []).join(", ")}]`), "---", "", `# ${m.title}`, ""];
-  if (m.intro?.trim()) out.push(m.intro.trim(), "");
-  out.push("## Components", "");
-  for (const c of m.components || []) out.push(`- ${c}`);
-  out.push("", "## Notes", "");
-  if (m.notes?.trim()) out.push(m.notes.trim(), "");
-  return out.join("\n").replace(/\n{3,}/g, "\n\n");
-}
-
 export function slugify(title) {
   return title.toLowerCase()
     .normalize("NFKD").replace(/[̀-ͯ]/g, "")
@@ -140,7 +118,7 @@ export function inline(md) {
     .replace(/(^|[\s(])_(?!\s)(.+?)_(?=$|[\s).,;:!?])/g, "$1<em>$2</em>");
   return s.replace(/\u0000(\d+)\u0000/g, (_, i) => {
     const { text, url } = links[Number(i)];
-    const local = url.match(/^(?:\.\.\/)?((?:recipes|meals)\/[\w.-]+\.md)$/);
+    const local = url.match(/^(?:\.\.\/)?(recipes\/[\w.-]+\.md)$/);
     if (local) return `<a href="#/view/${local[1]}">${escapeHtml(text)}</a>`;
     if (/^https?:\/\//.test(url)) {
       return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(text)}</a>`;

@@ -1,16 +1,12 @@
 // Run: node tests/format.test.mjs
 import { readFileSync, readdirSync } from "node:fs";
 import assert from "node:assert/strict";
-import { parseRecipe, serializeRecipe, parseMeal, serializeMeal, inline, slugify } from "../app/format.js";
+import { parseRecipe, serializeRecipe, inline, slugify } from "../app/format.js";
 
 // Every recipe in the repo must survive a parse → serialize round trip unchanged.
 for (const f of readdirSync("recipes").filter((f) => f.endsWith(".md"))) {
   const text = readFileSync(`recipes/${f}`, "utf8");
   assert.equal(serializeRecipe(parseRecipe(text)), text, `round trip: ${f}`);
-}
-for (const f of readdirSync("meals").filter((f) => f.endsWith(".md"))) {
-  const text = readFileSync(`meals/${f}`, "utf8");
-  assert.equal(serializeMeal(parseMeal(text)), text, `round trip: ${f}`);
 }
 
 const r = parseRecipe(readFileSync("recipes/marcella-hazan-bolognese.md", "utf8"));
@@ -25,8 +21,6 @@ assert.equal(back.type, "quick");
 assert.deepEqual(back.ingredients, ["tortillas", "beef"]);
 assert.ok(!serializeRecipe(quick).includes("## Method"));
 
-const meal = { title: "Sunday", tags: [], components: ["Main: [Bolognese](../recipes/marcella-hazan-bolognese.md)", "Green salad"], notes: "" };
-assert.deepEqual(parseMeal(serializeMeal(meal)).components, meal.components);
 
 assert.equal(inline("**a** <b>"), "<strong>a</strong> &lt;b&gt;");
 assert.equal(inline("[x](../recipes/a-b.md)"), '<a href="#/view/recipes/a-b.md">x</a>');

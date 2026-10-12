@@ -22,13 +22,33 @@ const server = http.createServer((req, res) => {
   fs.createReadStream(file).pipe(res);
 });
 
-// In-memory fake of the repo, seeded from recipes/ and meals/.
+// In-memory fake of the repo, seeded from recipes/ and lists/.
 const repo = {};
-for (const dir of ["recipes", "meals", "lists"]) {
+for (const dir of ["recipes", "lists"]) {
   for (const f of fs.readdirSync(path.join(ROOT, dir)).filter((f) => f.endsWith(".md"))) {
     repo[`${dir}/${f}`] = fs.readFileSync(path.join(ROOT, dir, f), "utf8");
   }
 }
+// Fixed staples list so the test doesn't depend on the real one.
+repo["lists/staples.md"] = `---
+title: Staples
+---
+
+# Staples
+
+## Drinks
+
+- Montellier sparkling water
+
+## Frozen
+
+- Pizza Pops
+
+## Pantry
+
+- Hamburger Helper
+- Annie's Mac & Cheese
+`;
 const sha = (t) => crypto.createHash("sha1").update(t).digest("hex");
 const commits = [];
 
@@ -149,16 +169,12 @@ source:
   await page.waitForSelector(".steps");
   assert.match(repo["recipes/weeknight-tacos.md"], /type: full[\s\S]*## Method\n\n1\. Brown the beef\.\n2\. Warm the tortillas\./);
 
-  // Meal linking a recipe
-  await page.goto(base + "#/new/meal");
-  await page.fill("#title", "Sunday Ragù");
-  await page.selectOption("#add-recipe", "recipes/marcella-hazan-bolognese.md");
-  await page.fill("#components", (await page.inputValue("#components")) + "\nGreen salad");
-  await page.click("#save");
-  await page.waitForSelector(".components a");
-  await shot("6-meal");
-  await page.click(".components a");
-  await page.waitForSelector("h1:has-text('Bolognese')");
+  // Old meal links no longer exist
+  await page.goto(base + "#/meals");
+  await page.waitForSelector("text=That recipe isn't here");
+  await page.goto(base + "#/");
+  await page.waitForSelector(".card");
+  assert.deepEqual(await page.locator(".segmented a").allInnerTexts(), ["Recipes", "Staples"]);
 
   // Staples: view, tick (persists across reload), quick-add, new section, edit
   await page.goto(base + "#/staples");
@@ -209,7 +225,7 @@ source:
 
   assert.deepEqual(commits.map((c) => c.message), [
     "Add recipe: Weeknight Tacos", "Update recipe: Weeknight Tacos",
-    "Add meal: Sunday Ragù", "Add staple: Frozen berries", "Add staple: Paper towels", "Update staples",
+    "Add staple: Frozen berries", "Add staple: Paper towels", "Update staples",
     "Delete recipe: Weeknight Tacos",
   ]);
   assert.deepEqual(errors, []);

@@ -159,12 +159,12 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
 .scaled { color: var(--accent); font-weight: 600; }
 .ing.done .scaled { color: inherit; font-weight: inherit; }
 
-.ingredients, .steps, .components {
+.ingredients, .steps {
   list-style: none; margin: 0; padding: 0;
   background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
 }
-.ingredients li, .steps li, .components li { padding: 12px 16px; border-top: 1px solid var(--line); }
-.ingredients li:first-child, .steps li:first-child, .components li:first-child { border-top: 0; }
+.ingredients li, .steps li { padding: 12px 16px; border-top: 1px solid var(--line); }
+.ingredients li:first-child, .steps li:first-child { border-top: 0; }
 .ing { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; user-select: none; -webkit-user-select: none; }
 .tick { flex: none; width: 22px; height: 22px; margin-top: 2px; border: 2px solid var(--line); border-radius: 50%; }
 .ing.done { color: var(--done); text-decoration: line-through; }

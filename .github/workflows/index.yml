@@ -1,9 +1,9 @@
-# Rebuild INDEX.md whenever recipes or meals change (including edits made in the app).
+# Rebuild INDEX.md whenever recipes or lists change (including edits made in the app).
 name: Rebuild index
 on:
   push:
     branches: [main]
-    paths: ["recipes/**", "meals/**", "lists/**", "scripts/build_index.py"]
+    paths: ["recipes/**", "lists/**", "scripts/build_index.py"]
 permissions:
   contents: write
 concurrency:

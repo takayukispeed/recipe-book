@@ -1,5 +1,5 @@
 import {
-  parseRecipe, serializeRecipe, parseMeal, serializeMeal,
+  parseRecipe, serializeRecipe,
   slugify, inline, block, escapeHtml as esc, scaleLine,
   parseList, serializeList, listToText, textToList,
 } from "./format.js";
@@ -32,7 +32,6 @@ const store = {
 const state = {
   files: JSON.parse(store.get(KEY_CACHE) || "{}"), // path -> { sha, text }
   recipes: [],
-  meals: [],
   staples: { title: "Staples", sections: [] },
   query: "",
   tag: null,
@@ -95,7 +94,7 @@ async function sync({ quiet = false } = {}) {
   updateSyncButton();
   try {
     const tree = await (await gh(`/git/trees/${BRANCH}?recursive=1`)).json();
-    const wanted = tree.tree.filter((e) => e.type === "blob" && /^(recipes|meals|lists)\/[^/]+\.md$/.test(e.path));
+    const wanted = tree.tree.filter((e) => e.type === "blob" && /^(recipes|lists)\/[^/]+\.md$/.test(e.path));
     const next = {};
     const todo = [];
     for (const e of wanted) {
@@ -152,8 +151,6 @@ function rebuild() {
   const byTitle = (a, b) => a.title.localeCompare(b.title);
   state.recipes = entries.filter(([p]) => p.startsWith("recipes/"))
     .map(([path, f]) => ({ path, ...parseRecipe(f.text) })).sort(byTitle);
-  state.meals = entries.filter(([p]) => p.startsWith("meals/"))
-    .map(([path, f]) => ({ path, ...parseMeal(f.text) })).sort(byTitle);
   state.staples = state.files[STAPLES] ? parseList(state.files[STAPLES].text) : { title: "Staples", sections: [] };
 }
 
@@ -209,7 +206,7 @@ function topBar(title) {
 function tabs(active) {
   const tab = (href, kind, label) => `<a href="${href}" class="${active === kind ? "on" : ""}">${label}</a>`;
   return `<nav class="segmented" aria-label="Section">
-      ${tab("#/", "recipes", "Recipes")}${tab("#/meals", "meals", "Meals")}${tab("#/staples", "staples", "Staples")}
+      ${tab("#/", "recipes", "Recipes")}${tab("#/staples", "staples", "Staples")}
     </nav>`;
 }
 
@@ -322,35 +319,33 @@ function staplesEditor() {
   });
 }
 
-function listView(kind) {
-  const isMeals = kind === "meals";
-  const items = isMeals ? state.meals : state.recipes;
+function listView() {
+  const items = state.recipes;
   const tags = [...new Set(items.flatMap((i) => i.tags))].sort();
   if (state.tag && !tags.includes(state.tag)) state.tag = null;
   const showHint = isIOS() && !isStandalone() && !store.get(KEY_HINT);
 
   app.innerHTML = `
-    ${topBar(isMeals ? "Meals" : "Recipes")}
+    ${topBar("Recipes")}
     ${showHint ? `<div class="hint"><span>Tap <strong>Share</strong> then <strong>Add to Home Screen</strong> to install this as an app.</span>
       <button id="hint-close" aria-label="Dismiss">✕</button></div>` : ""}
-    ${tabs(kind)}
-    <input id="search" type="search" placeholder="Search ${isMeals ? "meals" : "titles, tags, ingredients"}"
+    ${tabs("recipes")}
+    <input id="search" type="search" placeholder="Search titles, tags, ingredients"
       value="${esc(state.query)}" autocomplete="off" autocorrect="off">
     ${tags.length ? `<div class="chips">
       <button class="chip" data-tag="">All</button>
       ${tags.map((t) => `<button class="chip" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}
     </div>` : ""}
     <div id="results"></div>
-    <a class="fab" href="#/new/${isMeals ? "meal" : "recipe"}" aria-label="New ${isMeals ? "meal" : "recipe"}">${ICON.plus}</a>
+    <a class="fab" href="#/new/recipe" aria-label="New recipe">${ICON.plus}</a>
   `;
 
   const card = (i) => `
     <li><a class="card" href="#/view/${esc(i.path)}">
       <span class="card-title">${esc(i.title)}</span>
       <span class="card-meta">
-        ${isMeals ? `${i.components.length} component${i.components.length === 1 ? "" : "s"}`
-          : `<span class="badge ${i.type}">${i.type === "full" ? "Full method" : "Ingredients"}</span>
-             ${i.serves ? `<span>Serves ${esc(i.serves.split("(")[0].trim())}</span>` : ""}`}
+        <span class="badge ${i.type}">${i.type === "full" ? "Full method" : "Ingredients"}</span>
+        ${i.serves ? `<span>Serves ${esc(i.serves.split("(")[0].trim())}</span>` : ""}
       </span>
       ${i.tags.length ? `<span class="card-tags">${i.tags.map(esc).join(" · ")}</span>` : ""}
     </a></li>`;
@@ -360,13 +355,13 @@ function listView(kind) {
     const matches = items.filter((i) => {
       if (state.tag && !i.tags.includes(state.tag)) return false;
       if (!q) return true;
-      const hay = [i.title, ...i.tags, ...(i.ingredients || []), ...(i.components || [])].join(" ").toLowerCase();
+      const hay = [i.title, ...i.tags, ...i.ingredients].join(" ").toLowerCase();
       return q.split(/\s+/).every((w) => hay.includes(w));
     });
     const loading = !state.lastSync && !Object.keys(state.files).length;
     const empty = items.length ? "Nothing matches."
       : loading && state.syncError ? `Couldn't load recipes. ${esc(state.syncError)}`
-      : loading ? "Loading…" : `No ${kind} yet. Tap + to add one.`;
+      : loading ? "Loading…" : `No recipes yet. Tap + to add one.`;
     $("#results").innerHTML = matches.length
       ? `<ul class="cards">${matches.map(card).join("")}</ul>`
       : `<p class="empty">${empty}</p>`;
@@ -463,22 +458,6 @@ function recipeView(r) {
   $("#wake")?.addEventListener("change", (e) => setWakeLock(e.target.checked));
 }
 
-function mealView(m) {
-  app.innerHTML = `
-    ${backBar("#/meals", "Meals", `<a class="text-btn" href="#/edit/${esc(m.path)}">Edit</a>`)}
-    <article class="recipe">
-      <h1>${esc(m.title)}</h1>
-      ${m.intro ? `<div class="intro">${block(m.intro)}</div>` : ""}
-      <section><h2>Components</h2>
-        ${m.components.length ? `<ul class="components">${m.components.map((c) => `<li>${inline(c)}</li>`).join("")}</ul>`
-          : `<p class="empty">None listed.</p>`}
-      </section>
-      ${m.notes ? `<section class="notes"><h2>Notes</h2>${block(m.notes)}</section>` : ""}
-      ${m.tags.length ? `<p class="tags">${m.tags.map((t) => `<span>${esc(t)}</span>`).join("")}</p>` : ""}
-    </article>
-  `;
-}
-
 const field = (id, label, value, attrs = "") =>
   `<label class="field"><span>${label}</span><input id="${id}" value="${esc(value || "")}" ${attrs}></label>`;
 const area = (id, label, value, hint, rows = 6) =>
@@ -486,6 +465,7 @@ const area = (id, label, value, hint, rows = 6) =>
     <textarea id="${id}" rows="${rows}">${esc(value || "")}</textarea></label>`;
 const lines = (s) => s.split("\n").map((l) => l.trim()).filter(Boolean);
 const tagList = (s) => [...new Set(s.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean))];
+
 
 function tokenBanner() {
   return token() ? "" : `<p class="warn">To save changes, add a GitHub token in <a href="#/settings">Settings</a>.</p>`;
@@ -560,54 +540,6 @@ function recipeEditor(r) {
   });
 }
 
-function mealEditor(m) {
-  const isNew = !m;
-  m ||= { title: "", tags: [], intro: "", components: [], notes: "" };
-  app.innerHTML = `
-    ${backBar(isNew ? "#/meals" : `#/view/${esc(m.path)}`, "Cancel", `<button class="text-btn strong" id="save" ${token() ? "" : "disabled"}>Save</button>`)}
-    <form class="editor" onsubmit="return false">
-      <h1>${isNew ? "New meal" : "Edit meal"}</h1>
-      ${tokenBanner()}
-      ${field("title", "Title", m.title, 'required autocapitalize="words"')}
-      ${field("tags", "Tags <small>comma-separated</small>", m.tags.join(", "), 'autocapitalize="none"')}
-      <label class="field"><span>Add a recipe</span>
-        <select id="add-recipe"><option value="">Choose…</option>
-          ${state.recipes.map((r) => `<option value="${esc(r.path)}">${esc(r.title)}</option>`).join("")}
-        </select></label>
-      ${area("components", "Components", m.components.join("\n"), "one per line · free text or recipes added above", 6)}
-      ${area("notes", "Notes", m.notes, "optional", 4)}
-      ${isNew ? "" : `<button type="button" id="delete" class="danger" ${token() ? "" : "disabled"}>Delete meal</button>`}
-    </form>
-  `;
-  $("#add-recipe").onchange = (e) => {
-    const r = state.recipes.find((x) => x.path === e.target.value);
-    if (!r) return;
-    const ta = $("#components");
-    ta.value = [...lines(ta.value), `[${r.title.replace(/[[\]]/g, "")}](../${r.path})`].join("\n");
-    e.target.value = "";
-  };
-  $("#save").onclick = () => withBusy($("#save"), async () => {
-    const title = $("#title").value.trim();
-    if (!title) { toast("Give it a title."); $("#title").focus(); return; }
-    const next = {
-      title, tags: tagList($("#tags").value), intro: m.intro,
-      components: lines($("#components").value), notes: $("#notes").value.trim(),
-    };
-    const path = isNew ? uniquePath("meals", title) : m.path;
-    await saveFile(path, serializeMeal(next), `${isNew ? "Add" : "Update"} meal: ${title}`);
-    toast("Saved");
-    location.hash = `#/view/${path}`;
-  });
-  $("#delete")?.addEventListener("click", () => {
-    if (!confirm(`Delete "${m.title}"?`)) return;
-    withBusy($("#delete"), async () => {
-      await deleteFile(m.path, `Delete meal: ${m.title}`);
-      toast("Deleted");
-      location.hash = "#/meals";
-    });
-  });
-}
-
 async function withBusy(btn, fn) {
   btn.disabled = true;
   try { await fn(); } catch (err) { toast(friendlyError(err)); } finally { btn.disabled = false; }
@@ -642,7 +574,7 @@ function settingsView() {
       </section>
       <section class="panel">
         <h2>Data</h2>
-        <p>${state.recipes.length} recipes, ${state.meals.length} meals and ${state.staples.sections.reduce((n, s) => n + s.items.length, 0)} staples cached for offline use.
+        <p>${state.recipes.length} recipes and ${state.staples.sections.reduce((n, s) => n + s.items.length, 0)} staples cached for offline use.
           ${state.lastSync ? `Last synced ${state.lastSync.toLocaleTimeString()}.` : ""}</p>
         <div class="buttons"><button id="resync">Re-download everything</button></div>
       </section>
@@ -703,24 +635,22 @@ function render() {
     window.scrollTo(0, 0);
     lastRoute = route;
   }
-  const find = (path) => state.recipes.find((r) => r.path === path) || state.meals.find((m) => m.path === path);
+  const find = (path) => state.recipes.find((r) => r.path === path);
   let m;
-  if (route === "/" || route === "") return listView("recipes");
-  if (route === "/meals") return listView("meals");
+  if (route === "/" || route === "") return listView();
   if (route === "/staples") return staplesView();
   if (route === `/edit/${STAPLES}`) return staplesEditor();
   if (route === "/settings") return settingsView();
   if (route === "/new/recipe") return recipeEditor(null);
-  if (route === "/new/meal") return mealEditor(null);
   if ((m = route.match(/^\/view\/(.+)$/))) {
     const item = find(m[1]);
     if (!item) return state.lastSync ? notFound() : (app.innerHTML = '<p class="empty">Loading…</p>');
-    return item.path.startsWith("meals/") ? mealView(item) : recipeView(item);
+    return recipeView(item);
   }
   if ((m = route.match(/^\/edit\/(.+)$/))) {
     const item = find(m[1]);
     if (!item) return notFound();
-    return item.path.startsWith("meals/") ? mealEditor(item) : recipeEditor(item);
+    return recipeEditor(item);
   }
   return notFound();
 }

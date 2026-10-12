@@ -1,6 +1,6 @@
 # Recipe Book
 
-All my recipes and meals in one place. They are stored as plain Markdown files in this repo and used through an iPhone app.
+All my recipes and grocery staples in one place. They are stored as plain Markdown files in this repo and used through an iPhone app.
 
 - **App:** https://takayukispeed.github.io/recipe-book/ (see [Setting up the iPhone app](#setting-up-the-iphone-app))
 - **Browse on GitHub:** [INDEX.md](INDEX.md)
@@ -9,7 +9,6 @@ All my recipes and meals in one place. They are stored as plain Markdown files i
 
 ```
 recipes/     one file per recipe
-meals/       combinations of recipes (e.g. "Sunday ragù dinner")
 lists/       staples.md: things you buy often, grouped by store section
 templates/   copy one of these to start something new by hand
 index.html   the app (plus app/, sw.js, manifest.webmanifest)
@@ -63,7 +62,6 @@ The home-screen app has its own storage, separate from Safari, so add the token 
 - **Method:** tap a step to highlight where you are.
 - **Keep screen on while cooking:** a toggle at the bottom of each recipe.
 - **Staples:** your regular grocery buys, grouped by store section. Tap items to tick them off in the store; ticks stay on the phone until you **Clear ticks**. Add items with the bar at the top, or rename, remove and reorder them with **Edit list**.
-- **Meals:** build them from free-text lines plus links to recipes ("Add a recipe" picker).
 
 ## Adding a recipe by hand
 
