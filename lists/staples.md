@@ -7,6 +7,7 @@ title: Staples
 ## Drinks
 
 - Montellier sparkling water
+- Lemon pellegrino
 
 ## Frozen
 
