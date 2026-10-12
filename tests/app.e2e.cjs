@@ -231,7 +231,7 @@ source:
     ["CHEAP EATS", "NICE MEAL", "CAFÉS", "BAKERIES", "BEER BARS", "FANCY BARS"]);
   await shot("9-places");
   await page.click(".chip[data-cat=beer]");
-  assert.equal(await page.locator(".card").count(), 6);
+  assert.equal(await page.locator(".card").count(), Object.values(repo).filter((t) => /^category: beer$/m.test(t)).length);
   await page.fill("#search", "rachel");
   assert.equal(await page.locator(".card").count(), 2, "Pit Caribou and Projet Pilote");
   await page.fill("#search", "");
