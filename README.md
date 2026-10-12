@@ -80,4 +80,5 @@ Ingredient lists are facts, but a published method's wording is the author's. Wr
 ```
 node tests/format.test.mjs                               # every recipe survives the app's parse → save round trip
 NODE_PATH=$(npm root -g) node tests/app.e2e.cjs [shots]  # full flow in an emulated iPhone (needs Playwright)
+NODE_PATH=$(npm root -g) node tests/update.e2e.cjs         # installed app picks up a new deploy
 ```

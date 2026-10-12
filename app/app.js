@@ -668,6 +668,22 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && !editing()) sync({ quiet: true });
 });
 
+// ---- App updates ----------------------------------------------------------
+// Check for a new version whenever the app comes to the foreground; when one takes over,
+// reload so the new code runs (unless a form is open, in which case the next open picks it up).
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").catch(() => { /* offline support is optional */ });
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" })
+    .then((reg) => {
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") reg.update().catch(() => {});
+      });
+    })
+    .catch(() => { /* offline support is optional */ });
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController || reloaded || editing()) return;
+    reloaded = true;
+    location.reload();
+  });
 }

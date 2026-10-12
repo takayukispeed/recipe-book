@@ -1,6 +1,6 @@
 // Offline support for the app shell. Recipe data is cached by the app itself
 // (localStorage), and GitHub API requests are never intercepted here.
-const CACHE = "recipe-book-v4";
+const CACHE = "recipe-book-v5";
 const SHELL = [
   "./",
   "index.html",
@@ -25,11 +25,13 @@ self.addEventListener("activate", (e) => {
 });
 
 // Network first, so app updates show up as soon as you're online; cache when offline.
+// "no-cache" makes the browser revalidate with GitHub Pages every time (a cheap 304 when
+// nothing changed) instead of reusing its HTTP cache for up to 10 minutes.
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== self.location.origin) return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: "no-cache" })
       .then((res) => {
         if (res.ok) {
           const copy = res.clone();
