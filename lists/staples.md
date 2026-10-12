@@ -16,3 +16,11 @@ title: Staples
 
 - Hamburger Helper
 - Annie's Mac & Cheese
+
+## Snacks
+
+- Kashi granola bars
+
+## Fridge
+
+- Hummus
