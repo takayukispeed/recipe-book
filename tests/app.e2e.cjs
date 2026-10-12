@@ -29,6 +29,11 @@ for (const dir of ["recipes", "lists"]) {
     repo[`${dir}/${f}`] = fs.readFileSync(path.join(ROOT, dir, f), "utf8");
   }
 }
+for (const city of fs.readdirSync(path.join(ROOT, "places"))) {
+  for (const f of fs.readdirSync(path.join(ROOT, "places", city)).filter((f) => f.endsWith(".md"))) {
+    repo[`places/${city}/${f}`] = fs.readFileSync(path.join(ROOT, "places", city, f), "utf8");
+  }
+}
 // Fixed staples list so the test doesn't depend on the real one.
 repo["lists/staples.md"] = `---
 title: Staples
@@ -84,6 +89,13 @@ async function mockGitHub(route) {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ ...devices["iPhone 15"], serviceWorkers: "block" });
   await ctx.route("https://api.github.com/**", mockGitHub);
+  await ctx.route("https://unpkg.com/**", (r) => r.abort()); // no Leaflet offline: the map shows a message
+  await ctx.route("https://nominatim.openstreetmap.org/**", (r) => r.fulfill({
+    status: 200, headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+    body: JSON.stringify([{ lat: "45.5236", lon: "-73.5825", display_name: "Kazu, 1862, Rue Sainte-Catherine Ouest, Montréal",
+      address: { house_number: "1862", road: "Rue Sainte-Catherine Ouest", city: "Montréal", postcode: "H3H 1M1", suburb: "Ville-Marie" },
+      extratags: { opening_hours: "Mo,Th-Su 12:00-21:00; Tu,We off", phone: "+1 514-937-2333" } }]),
+  }));
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -171,10 +183,10 @@ source:
 
   // Old meal links no longer exist
   await page.goto(base + "#/meals");
-  await page.waitForSelector("text=That recipe isn't here");
+  await page.waitForSelector("text=That page isn't here");
   await page.goto(base + "#/");
   await page.waitForSelector(".card");
-  assert.deepEqual(await page.locator(".segmented a").allInnerTexts(), ["Recipes", "Staples"]);
+  assert.deepEqual(await page.locator(".segmented a").allInnerTexts(), ["Recipes", "Staples", "Places"]);
 
   // Staples: view, tick (persists across reload), quick-add, new section, edit
   await page.goto(base + "#/staples");
@@ -210,6 +222,48 @@ source:
   await page.click("#clear-ticks");
   assert.equal(await page.locator(".staples .ing.done").count(), 0);
 
+  // Places: list grouped by category, filter, view, map fallback, add one with an OSM lookup
+  const placeCount = Object.keys(repo).filter((p) => p.startsWith("places/")).length;
+  await page.goto(base + "#/places");
+  await page.waitForSelector(".card");
+  assert.equal(await page.locator(".card").count(), placeCount);
+  assert.deepEqual(await page.locator(".list-heading").allInnerTexts(),
+    ["CHEAP EATS", "NICE MEAL", "CAFÉS", "BAKERIES", "BEER BARS", "FANCY BARS"]);
+  await shot("9-places");
+  await page.click(".chip[data-cat=beer]");
+  assert.equal(await page.locator(".card").count(), 6);
+  await page.fill("#search", "rachel");
+  assert.equal(await page.locator(".card").count(), 2, "Pit Caribou and Projet Pilote");
+  await page.fill("#search", "");
+  await page.click(".chip[data-cat='']");
+  await page.click("text=Big in Japan");
+  await page.waitForSelector(".hours");
+  assert.equal(await page.locator(".hours li").count(), 3);
+  assert.match(await page.locator(".actions").innerText(), /Directions[\s\S]*Google Maps/);
+  await shot("10-place");
+  await page.goto(base + "#/places");
+  await page.click("[data-mode=map]");
+  await page.waitForSelector("text=The map needs a connection");
+  await page.click("[data-mode=list]");
+  await page.click(".fab");
+  await page.fill("#name", "Kazu");
+  await page.selectOption("#category", "cheap");
+  assert.equal(await page.inputValue("#city"), "Montréal", "defaults to the city being browsed");
+  await page.click("#lookup");
+  await page.waitForSelector("text=Filled in");
+  assert.equal(await page.inputValue("#address"), "1862 Rue Sainte-Catherine Ouest, Montréal, H3H 1M1");
+  assert.equal(await page.inputValue("#hours"), "Mon, Thu–Sun: 12:00–21:00\nTue, Wed: Closed");
+  assert.equal(await page.inputValue("#lat"), "45.523600");
+  await shot("11-place-editor");
+  await page.click("#save");
+  await page.waitForURL(/#\/view\/places\/montreal\/kazu\.md$/);
+  assert.match(repo["places/montreal/kazu.md"], /^---\nname: Kazu\ncity: Montréal\ncategory: cheap\narea: Ville-Marie\n[\s\S]*lat: 45\.5236\nlng: -73\.5825\n[\s\S]*## Hours\n\n- Mon, Thu–Sun: 12:00–21:00\n- Tue, Wed: Closed\n/);
+  page.once("dialog", (d) => d.accept());
+  await page.goto(base + "#/edit/places/montreal/kazu.md");
+  await page.click("#delete");
+  await page.waitForURL(/#\/places$/);
+  assert.ok(!repo["places/montreal/kazu.md"]);
+
   // Delete
   page.once("dialog", (d) => d.accept());
   await page.goto(base + "#/edit/recipes/weeknight-tacos.md");
@@ -226,6 +280,7 @@ source:
   assert.deepEqual(commits.map((c) => c.message), [
     "Add recipe: Weeknight Tacos", "Update recipe: Weeknight Tacos",
     "Add staple: Frozen berries", "Add staple: Paper towels", "Update staples",
+    "Add place: Kazu", "Delete place: Kazu",
     "Delete recipe: Weeknight Tacos",
   ]);
   assert.deepEqual(errors, []);

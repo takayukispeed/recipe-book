@@ -1,9 +1,10 @@
-# Rebuild INDEX.md whenever recipes or lists change (including edits made in the app).
+# Rebuild INDEX.md whenever recipes, places or lists change (including edits made in the app),
+# and look up map coordinates for places that don't have them yet.
 name: Rebuild index
 on:
   push:
     branches: [main]
-    paths: ["recipes/**", "lists/**", "scripts/build_index.py"]
+    paths: ["recipes/**", "places/**", "lists/**", "scripts/build_index.py", "scripts/geocode_places.py"]
 permissions:
   contents: write
 concurrency:
@@ -13,12 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: python3 scripts/geocode_places.py
       - run: python3 scripts/build_index.py
       - name: Commit if changed
         run: |
-          git diff --quiet INDEX.md && exit 0
+          git diff --quiet INDEX.md places && exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "Rebuild index"
+          git commit -am "Rebuild index and map coordinates"
           git pull --rebase origin main
           git push

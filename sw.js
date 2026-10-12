@@ -1,12 +1,13 @@
 // Offline support for the app shell. Recipe data is cached by the app itself
 // (localStorage), and GitHub API requests are never intercepted here.
-const CACHE = "recipe-book-v5";
+const CACHE = "recipe-book-v6";
 const SHELL = [
   "./",
   "index.html",
   "manifest.webmanifest",
   "app/app.js",
   "app/format.js",
+  "app/places.js",
   "app/styles.css",
   "app/icons/icon-180.png",
   "app/icons/icon-192.png",

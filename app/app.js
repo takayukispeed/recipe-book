@@ -3,6 +3,10 @@ import {
   slugify, inline, block, escapeHtml as esc, scaleLine,
   parseList, serializeList, listToText, textToList,
 } from "./format.js";
+import {
+  CATEGORIES, categoryLabel, categoryColour, categoryOrder,
+  parsePlace, serializePlace, placePath, hoursStatus, todayLine, osmHoursToLines,
+} from "./places.js";
 
 // ---- Config ---------------------------------------------------------------
 // On GitHub Pages (owner.github.io/repo/) the repo is read from the URL;
@@ -20,6 +24,8 @@ const KEY_CACHE = "rb.files.v1";
 const KEY_TOKEN = "rb.token";
 const KEY_HINT = "rb.installHintDismissed";
 const KEY_TICKS = "rb.staples.ticked";
+const KEY_CITY = "rb.places.city";
+const KEY_GEO = "rb.places.geo.v1";
 const STAPLES = "lists/staples.md";
 
 // ---- Storage (wrapped: private mode can make localStorage throw) ----------
@@ -32,6 +38,11 @@ const store = {
 const state = {
   files: JSON.parse(store.get(KEY_CACHE) || "{}"), // path -> { sha, text }
   recipes: [],
+  places: [],
+  placeQuery: "",
+  placeCat: null,
+  placeOpenNow: false,
+  placesMode: "list", // or "map"
   staples: { title: "Staples", sections: [] },
   query: "",
   tag: null,
@@ -94,7 +105,7 @@ async function sync({ quiet = false } = {}) {
   updateSyncButton();
   try {
     const tree = await (await gh(`/git/trees/${BRANCH}?recursive=1`)).json();
-    const wanted = tree.tree.filter((e) => e.type === "blob" && /^(recipes|lists)\/[^/]+\.md$/.test(e.path));
+    const wanted = tree.tree.filter((e) => e.type === "blob" && /^((recipes|lists)\/[^/]+|places\/[^/]+\/[^/]+)\.md$/.test(e.path));
     const next = {};
     const todo = [];
     for (const e of wanted) {
@@ -151,6 +162,9 @@ function rebuild() {
   const byTitle = (a, b) => a.title.localeCompare(b.title);
   state.recipes = entries.filter(([p]) => p.startsWith("recipes/"))
     .map(([path, f]) => ({ path, ...parseRecipe(f.text) })).sort(byTitle);
+  state.places = entries.filter(([p]) => p.startsWith("places/"))
+    .map(([path, f]) => ({ path, ...parsePlace(f.text) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
   state.staples = state.files[STAPLES] ? parseList(state.files[STAPLES].text) : { title: "Staples", sections: [] };
 }
 
@@ -185,6 +199,7 @@ const ICON = {
   sync: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9M18.5 3v4.2h-4.2M5.5 21v-4.2h4.2"/></svg>',
   gear: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
   plus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  pin: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
   back: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
 };
 
@@ -206,7 +221,7 @@ function topBar(title) {
 function tabs(active) {
   const tab = (href, kind, label) => `<a href="${href}" class="${active === kind ? "on" : ""}">${label}</a>`;
   return `<nav class="segmented" aria-label="Section">
-      ${tab("#/", "recipes", "Recipes")}${tab("#/staples", "staples", "Staples")}
+      ${tab("#/", "recipes", "Recipes")}${tab("#/staples", "staples", "Staples")}${tab("#/places", "places", "Places")}
     </nav>`;
 }
 
@@ -574,7 +589,7 @@ function settingsView() {
       </section>
       <section class="panel">
         <h2>Data</h2>
-        <p>${state.recipes.length} recipes and ${state.staples.sections.reduce((n, s) => n + s.items.length, 0)} staples cached for offline use.
+        <p>${state.recipes.length} recipes, ${state.places.length} places and ${state.staples.sections.reduce((n, s) => n + s.items.length, 0)} staples cached for offline use.
           ${state.lastSync ? `Last synced ${state.lastSync.toLocaleTimeString()}.` : ""}</p>
         <div class="buttons"><button id="resync">Re-download everything</button></div>
       </section>
@@ -600,7 +615,344 @@ function settingsView() {
 }
 
 function notFound() {
-  app.innerHTML = `${backBar("#/", "Recipes")}<p class="empty">That recipe isn't here. It may have been renamed or deleted. Try syncing.</p>`;
+  app.innerHTML = `${backBar("#/", "Recipes")}<p class="empty">That page isn't here. It may have been renamed or deleted. Try syncing.</p>`;
+}
+
+// ---- Places: restaurants, cafés and bars by city --------------------------
+const cities = () => [...new Set(state.places.map((p) => p.city).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+function currentCity() {
+  const all = cities();
+  const saved = store.get(KEY_CITY);
+  return saved === "" || all.includes(saved) ? saved : all[0] || "";
+}
+
+const googleMaps = (p) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([p.name, p.address || p.city].filter(Boolean).join(", "))}`;
+const directions = (p) => {
+  const dest = p.address || `${p.name}, ${p.city}`;
+  return isIOS() ? `https://maps.apple.com/?daddr=${encodeURIComponent(dest)}&q=${encodeURIComponent(p.name)}`
+    : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}`;
+};
+const catBadge = (k) => `<span class="badge cat" style="--c:${categoryColour(k)}">${esc(categoryLabel(k))}</span>`;
+const statusHtml = (p, cls = "") => {
+  const s = hoursStatus(p.hours);
+  return s ? `<span class="status-dot ${s.open ? "open" : "shut"} ${cls}">${esc(s.text)}</span>` : "";
+};
+
+// Coordinates: from the file when present (a GitHub Action fills them in), otherwise looked up
+// on this device with OpenStreetMap's free geocoder and remembered.
+const geoCache = () => { try { return JSON.parse(store.get(KEY_GEO) || "{}"); } catch { return {}; } };
+const coords = (p) => (p.lat !== null && p.lng !== null ? [p.lat, p.lng] : geoCache()[p.address] || null);
+
+async function nominatim(params) {
+  const q = new URLSearchParams({ format: "jsonv2", limit: "1", ...params });
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?${q}`, { headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error(`Map lookup failed (${res.status})`);
+  return (await res.json())[0] || null;
+}
+
+let geocoding = false;
+async function geocodeMissing(onFound) {
+  if (geocoding) return;
+  geocoding = true;
+  try {
+    const cache = geoCache();
+    const todo = state.places.filter((p) => p.address && !coords(p) && !(p.address in cache));
+    for (const p of todo) {
+      try {
+        const hit = await nominatim({ q: p.address.replace(/\s*\([^)]*\)/g, "") });
+        cache[p.address] = hit ? [Number(hit.lat), Number(hit.lon)] : null;
+        store.set(KEY_GEO, JSON.stringify(cache));
+        if (hit) onFound(p);
+      } catch { break; /* offline or rate-limited: try again next time */ }
+      await new Promise((r) => setTimeout(r, 1100)); // Nominatim allows 1 request a second
+    }
+  } finally { geocoding = false; }
+}
+
+let leafletReady;
+function loadLeaflet() {
+  leafletReady ||= new Promise((resolve, reject) => {
+    const css = document.createElement("link");
+    css.rel = "stylesheet";
+    css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    document.head.append(css);
+    const js = document.createElement("script");
+    js.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    js.onload = () => resolve(window.L);
+    js.onerror = () => { leafletReady = null; reject(new Error("The map needs a connection to load.")); };
+    document.head.append(js);
+  });
+  return leafletReady;
+}
+
+function filteredPlaces() {
+  const city = currentCity();
+  const q = state.placeQuery.trim().toLowerCase();
+  return state.places.filter((p) => {
+    if (city && p.city !== city) return false;
+    if (state.placeCat && p.category !== state.placeCat) return false;
+    if (state.placeOpenNow && !hoursStatus(p.hours)?.open) return false;
+    if (!q) return true;
+    const hay = [p.name, p.area, p.address, categoryLabel(p.category), p.notes].join(" ").toLowerCase();
+    return q.split(/\s+/).every((w) => hay.includes(w));
+  });
+}
+
+function placesView() {
+  const all = cities();
+  const city = currentCity();
+  const inCity = state.places.filter((p) => !city || p.city === city);
+  const cats = CATEGORIES.map(([k]) => k).filter((k) => inCity.some((p) => p.category === k))
+    .concat([...new Set(inCity.map((p) => p.category))].filter((k) => categoryOrder(k) === 99).sort());
+  if (state.placeCat && !cats.includes(state.placeCat)) state.placeCat = null;
+  const map = state.placesMode === "map";
+
+  app.innerHTML = `
+    ${topBar("Places")}
+    ${tabs("places")}
+    <div class="place-tools">
+      ${all.length > 1 ? `<select id="city" aria-label="City">
+        ${all.map((c) => `<option ${c === city ? "selected" : ""}>${esc(c)}</option>`).join("")}
+        <option value="" ${city === "" ? "selected" : ""}>All cities</option>
+      </select>` : all.length ? `<span class="city-name">${esc(all[0])}</span>` : ""}
+      <div class="segmented small mode" role="group" aria-label="View">
+        <button data-mode="list" class="${map ? "" : "on"}" aria-pressed="${!map}">List</button>
+        <button data-mode="map" class="${map ? "on" : ""}" aria-pressed="${map}">Map</button>
+      </div>
+    </div>
+    <input id="search" type="search" placeholder="Search names, neighbourhoods, notes"
+      value="${esc(state.placeQuery)}" autocomplete="off" autocorrect="off">
+    <div class="chips">
+      <button class="chip ${state.placeOpenNow ? "on" : ""}" id="open-now">Open now</button>
+      <button class="chip" data-cat="">All</button>
+      ${cats.map((k) => `<button class="chip" data-cat="${esc(k)}">${esc(categoryLabel(k))}</button>`).join("")}
+    </div>
+    <div id="results"></div>
+    <a class="fab" href="#/new/place" aria-label="New place">${ICON.plus}</a>
+  `;
+
+  const card = (p) => `
+    <li><a class="card" href="#/view/${esc(p.path)}">
+      <span class="card-title">${esc(p.name)}</span>
+      <span class="card-meta">${catBadge(p.category)}${p.area ? `<span>${esc(p.area)}</span>` : ""}${!city && p.city ? `<span>${esc(p.city)}</span>` : ""}</span>
+      ${statusHtml(p, "card-status")}
+    </a></li>`;
+
+  let mapObj = null;
+  let markers = null;
+  const drawMarkers = () => {
+    if (!mapObj) return;
+    const L = window.L;
+    markers.clearLayers();
+    const pts = [];
+    for (const p of filteredPlaces()) {
+      const c = coords(p);
+      if (!c) continue;
+      pts.push(c);
+      const s = hoursStatus(p.hours);
+      L.circleMarker(c, { radius: 9, color: "#fff", weight: 2, fillColor: categoryColour(p.category), fillOpacity: 1 })
+        .bindPopup(`<a class="pop" href="#/view/${esc(p.path)}"><strong>${esc(p.name)}</strong></a><br>
+          ${esc(categoryLabel(p.category))}${p.area ? ` · ${esc(p.area)}` : ""}${s ? `<br><span class="${s.open ? "open" : "shut"}">${esc(s.text)}</span>` : ""}`)
+        .addTo(markers);
+    }
+    return pts;
+  };
+  const fit = (pts) => {
+    if (pts?.length > 1) mapObj.fitBounds(pts, { padding: [30, 30], maxZoom: 15 });
+    else if (pts?.length === 1) mapObj.setView(pts[0], 15);
+  };
+
+  const show = ({ refit = true } = {}) => {
+    const matches = filteredPlaces();
+    app.querySelectorAll("[data-cat]").forEach((c) => c.classList.toggle("on", (c.dataset.cat || null) === state.placeCat));
+    if (map) {
+      const missing = matches.filter((p) => !coords(p)).length;
+      $("#map-note").textContent = missing ? `Finding ${missing} more on the map…` : "";
+      const pts = drawMarkers();
+      if (refit) fit(pts);
+      return;
+    }
+    const loading = !state.lastSync && !Object.keys(state.files).length;
+    if (!matches.length) {
+      $("#results").innerHTML = `<p class="empty">${state.places.length ? "Nothing matches."
+        : loading ? "Loading…" : "No places yet. Tap + to add one."}</p>`;
+      return;
+    }
+    // Group by category in a fixed order.
+    const groups = new Map();
+    for (const p of [...matches].sort((a, b) => categoryOrder(a.category) - categoryOrder(b.category))) {
+      if (!groups.has(p.category)) groups.set(p.category, []);
+      groups.get(p.category).push(p);
+    }
+    $("#results").innerHTML = [...groups].map(([k, ps]) => `
+      ${state.placeCat ? "" : `<h2 class="list-heading">${esc(categoryLabel(k))}</h2>`}
+      <ul class="cards">${ps.map(card).join("")}</ul>`).join("");
+  };
+
+  if (map) {
+    $("#results").innerHTML = `<div id="map" class="map"></div><p id="map-note" class="map-note"></p>`;
+    loadLeaflet().then((L) => {
+      if (!document.getElementById("map")) return;
+      mapObj = L.map("map", { zoomControl: false }).setView([45.52, -73.58], 12);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      }).addTo(mapObj);
+      markers = L.layerGroup().addTo(mapObj);
+      show();
+      // Pins appear as they're found, without moving the map under your finger. If none were
+      // known yet (a new city), zoom to them once the lookups finish.
+      const hadPins = filteredPlaces().some(coords);
+      geocodeMissing(() => { if (document.getElementById("map")) show({ refit: false }); })
+        .then(() => { if (document.getElementById("map")) show({ refit: !hadPins }); });
+    }).catch((err) => { $("#results").innerHTML = `<p class="empty">${esc(err.message)}</p>`; });
+  } else show();
+
+  $("#sync").onclick = () => sync();
+  updateSyncButton();
+  $("#city")?.addEventListener("change", (e) => { store.set(KEY_CITY, e.target.value); render(); });
+  app.querySelectorAll("[data-mode]").forEach((b) => {
+    b.onclick = () => { state.placesMode = b.dataset.mode; render(); };
+  });
+  $("#search").oninput = (e) => { state.placeQuery = e.target.value; show(); };
+  $("#open-now").onclick = (e) => { state.placeOpenNow = !state.placeOpenNow; e.target.classList.toggle("on"); show(); };
+  app.querySelectorAll("[data-cat]").forEach((c) => {
+    c.onclick = () => { state.placeCat = c.dataset.cat || null; show(); };
+  });
+}
+
+function placeView(p) {
+  const today = todayLine(p.hours);
+  const site = p.website && /^https?:\/\//.test(p.website) ? p.website : "";
+  app.innerHTML = `
+    ${backBar("#/places", "Places", `<a class="text-btn" href="#/edit/${esc(p.path)}">Edit</a>`)}
+    <article class="recipe place">
+      <h1>${esc(p.name)}</h1>
+      <p class="meta">${catBadge(p.category)}${p.area ? `<span>${esc(p.area)}</span>` : ""}${p.city ? `<span>${esc(p.city)}</span>` : ""}</p>
+      ${statusHtml(p, "big")}
+      <div class="actions">
+        <a href="${esc(directions(p))}" target="_blank" rel="noopener">${ICON.pin}<span>Directions</span></a>
+        <a href="${esc(googleMaps(p))}" target="_blank" rel="noopener"><span class="g">G</span><span>Google Maps</span></a>
+        ${p.phone ? `<a href="tel:${esc(p.phone.replace(/[^\d+]/g, ""))}"><span class="g">☎</span><span>Call</span></a>` : ""}
+        ${site ? `<a href="${esc(site)}" target="_blank" rel="noopener"><span class="g">↗</span><span>Website</span></a>` : ""}
+      </div>
+      <section>
+        <h2>Address</h2>
+        <p class="address">${p.address ? esc(p.address) : "Not added yet."}${p.phone ? `<br><a href="tel:${esc(p.phone.replace(/[^\d+]/g, ""))}">${esc(p.phone)}</a>` : ""}</p>
+      </section>
+      <section>
+        <h2>Hours</h2>
+        ${p.hours.length ? `<ul class="hours">${p.hours.map((h, i) => `<li class="${i === today ? "today" : ""}">${esc(h)}</li>`).join("")}</ul>`
+          : `<p class="muted">No hours saved. <a href="${esc(googleMaps(p))}" target="_blank" rel="noopener">Check Google Maps</a>.</p>`}
+        ${p.hours.length ? `<p class="fine">${p.checked ? `Checked ${esc(p.checked)}. ` : ""}Google Maps has the current hours, including holidays.</p>` : ""}
+      </section>
+      ${p.notes ? `<section class="notes"><h2>Notes</h2>${block(p.notes)}</section>` : ""}
+    </article>
+  `;
+}
+
+const HOURS_HINT = "one line per day or range · e.g. Mon–Fri: 11:30–22:00 · Sat: 10:00–14:00, 17:00–23:00 · Sun: Closed";
+
+function placeEditor(p) {
+  const isNew = !p;
+  const city = currentCity();
+  p ||= { name: "", city, category: state.placeCat || "nice", area: "", address: "", phone: "", website: "", lat: null, lng: null, checked: "", hours: [], notes: "" };
+  const cats = CATEGORIES.some(([k]) => k === p.category) ? CATEGORIES : [...CATEGORIES, [p.category, p.category]];
+  app.innerHTML = `
+    ${backBar(isNew ? "#/places" : `#/view/${esc(p.path)}`, "Cancel", `<button class="text-btn strong" id="save" ${token() ? "" : "disabled"}>Save</button>`)}
+    <form class="editor" onsubmit="return false">
+      <h1>${isNew ? "New place" : "Edit place"}</h1>
+      ${tokenBanner()}
+      ${field("name", "Name", p.name, 'required autocapitalize="words"')}
+      <label class="field"><span>Category</span><select id="category">
+        ${cats.map(([k, label]) => `<option value="${esc(k)}" ${k === p.category ? "selected" : ""}>${esc(label)}</option>`).join("")}
+      </select></label>
+      <div class="row">
+        ${field("city", "City", p.city, 'autocapitalize="words" list="city-list"')}
+        ${field("area", "Neighbourhood", p.area, 'autocapitalize="words"')}
+      </div>
+      <datalist id="city-list">${cities().map((c) => `<option value="${esc(c)}">`).join("")}</datalist>
+      ${field("address", "Address", p.address)}
+      <div class="buttons lookup"><button type="button" id="lookup">Look up on OpenStreetMap</button></div>
+      <p id="lookup-status" class="status"></p>
+      <div class="row">
+        ${field("phone", "Phone", p.phone, 'type="tel"')}
+        ${field("website", "Website", p.website, 'type="url" autocapitalize="none"')}
+      </div>
+      ${area("hours", "Hours", p.hours.join("\n"), HOURS_HINT, 7)}
+      ${area("notes", "Notes", p.notes, "what to order, who it's good for…", 4)}
+      <div class="row">
+        ${field("lat", "Latitude <small>for the map</small>", String(p.lat ?? ""), 'inputmode="decimal"')}
+        ${field("lng", "Longitude", String(p.lng ?? ""), 'inputmode="decimal"')}
+      </div>
+      ${isNew ? "" : `<button type="button" id="delete" class="danger" ${token() ? "" : "disabled"}>Delete place</button>`}
+    </form>
+  `;
+
+  // Fill blanks from OpenStreetMap: coordinates always, plus address, phone, website and hours when it has them.
+  $("#lookup").onclick = () => withBusy($("#lookup"), async () => {
+    const status = $("#lookup-status");
+    const name = $("#name").value.trim();
+    const where = $("#city").value.trim();
+    const addr = $("#address").value.trim();
+    if (!name && !addr) { status.textContent = "Enter a name or an address first."; return; }
+    status.textContent = "Searching…";
+    let hit = name ? await nominatim({ q: [name, where].filter(Boolean).join(", "), extratags: "1", addressdetails: "1" }) : null;
+    if (!hit && addr) hit = await nominatim({ q: addr, extratags: "1", addressdetails: "1" });
+    if (!hit) { status.textContent = "Not found. Check the spelling, or type the address and try again."; return; }
+    const filled = [];
+    const set = (id, value, label) => { if (value && !$(id).value.trim()) { $(id).value = value; filled.push(label); } };
+    const a = hit.address || {};
+    const street = [a.house_number, a.road].filter(Boolean).join(" ");
+    set("#address", [street, a.city || a.town || a.village, a.state, a.postcode].filter(Boolean).join(", "), "address");
+    set("#area", a.neighbourhood || a.suburb || "", "neighbourhood");
+    set("#phone", hit.extratags?.phone || hit.extratags?.["contact:phone"], "phone");
+    set("#website", hit.extratags?.website || hit.extratags?.["contact:website"], "website");
+    set("#hours", osmHoursToLines(hit.extratags?.opening_hours).join("\n"), "hours");
+    $("#lat").value = Number(hit.lat).toFixed(6);
+    $("#lng").value = Number(hit.lon).toFixed(6);
+    filled.push("map location");
+    status.textContent = `Found: ${hit.display_name.split(",").slice(0, 3).join(",")}. Filled in ${filled.join(", ")}. Check that it's the right place.`;
+  });
+
+  $("#save").onclick = () => withBusy($("#save"), async () => {
+    const name = $("#name").value.trim();
+    if (!name) { toast("Give it a name."); $("#name").focus(); return; }
+    const num = (id) => { const v = $(id).value.trim(); return v && Number.isFinite(Number(v)) ? Number(v) : null; };
+    const next = {
+      name,
+      city: $("#city").value.trim(),
+      category: $("#category").value,
+      area: $("#area").value.trim(),
+      address: $("#address").value.trim(),
+      phone: $("#phone").value.trim(),
+      website: $("#website").value.trim(),
+      lat: num("#lat"),
+      lng: num("#lng"),
+      hours: lines($("#hours").value),
+      notes: $("#notes").value.trim(),
+    };
+    // A new address with the old coordinates would put the pin in the wrong spot; clearing them
+    // lets the map look the address up again.
+    if (!isNew && next.address !== p.address && next.lat === p.lat && next.lng === p.lng) next.lat = next.lng = null;
+    const changedHours = isNew || next.hours.join("\n") !== p.hours.join("\n") || next.address !== p.address;
+    next.checked = changedHours ? new Date().toISOString().slice(0, 7) : p.checked;
+    const folder = placePath(next);
+    const path = isNew || !p.path.startsWith(`${folder}/`) ? uniquePath(folder, name) : p.path;
+    await saveFile(path, serializePlace(next), `${isNew ? "Add" : "Update"} place: ${name}`);
+    if (!isNew && path !== p.path) await deleteFile(p.path, `Move place: ${name}`); // city changed
+    if (next.city) store.set(KEY_CITY, next.city);
+    toast("Saved");
+    location.hash = `#/view/${path}`;
+  });
+
+  $("#delete")?.addEventListener("click", () => {
+    if (!confirm(`Delete "${p.name}"? It stays in the repo's history on GitHub.`)) return;
+    withBusy($("#delete"), async () => {
+      await deleteFile(p.path, `Delete place: ${p.name}`);
+      toast("Deleted");
+      location.hash = "#/places";
+    });
+  });
 }
 
 // ---- Wake lock (keep screen on while cooking) -----------------------------
@@ -642,6 +994,13 @@ function render() {
   if (route === `/edit/${STAPLES}`) return staplesEditor();
   if (route === "/settings") return settingsView();
   if (route === "/new/recipe") return recipeEditor(null);
+  if (route === "/places") return placesView();
+  if (route === "/new/place") return placeEditor(null);
+  if ((m = route.match(/^\/(view|edit)\/(places\/.+)$/))) {
+    const place = state.places.find((p) => p.path === m[2]);
+    if (!place) return state.lastSync ? notFound() : (app.innerHTML = '<p class="empty">Loading…</p>');
+    return m[1] === "view" ? placeView(place) : placeEditor(place);
+  }
   if ((m = route.match(/^\/view\/(.+)$/))) {
     const item = find(m[1]);
     if (!item) return state.lastSync ? notFound() : (app.innerHTML = '<p class="empty">Loading…</p>');

@@ -1,6 +1,6 @@
 # Recipe Book
 
-All my recipes and grocery staples in one place. They are stored as plain Markdown files in this repo and used through an iPhone app.
+All my recipes, grocery staples and favourite restaurants and bars in one place. They are stored as plain Markdown files in this repo and used through an iPhone app.
 
 - **App:** https://takayukispeed.github.io/recipe-book/ (see [Setting up the iPhone app](#setting-up-the-iphone-app))
 - **Browse on GitHub:** [INDEX.md](INDEX.md)
@@ -9,10 +9,11 @@ All my recipes and grocery staples in one place. They are stored as plain Markdo
 
 ```
 recipes/     one file per recipe
+places/      one folder per city, one file per restaurant, café or bar
 lists/       staples.md: things you buy often, grouped by store section
 templates/   copy one of these to start something new by hand
 index.html   the app (plus app/, sw.js, manifest.webmanifest)
-scripts/     build_index.py regenerates INDEX.md (runs automatically on GitHub)
+scripts/     build_index.py regenerates INDEX.md; geocode_places.py adds map pins (both run on GitHub)
 tests/       format round-trip test and an iPhone end-to-end test
 ```
 
@@ -62,6 +63,29 @@ The home-screen app has its own storage, separate from Safari, so add the token 
 - **Method:** tap a step to highlight where you are.
 - **Keep screen on while cooking:** a toggle at the bottom of each recipe.
 - **Staples:** your regular grocery buys, grouped by store section. Tap items to tick them off in the store; ticks stay on the phone until you **Clear ticks**. Add items with the bar at the top, or rename, remove and reorder them with **Edit list**.
+
+## Places
+
+The **Places** tab is a list of restaurants, cafés and bars to take people to, by city.
+
+| `category:` | Shown as |
+|---|---|
+| `cheap` | Cheap eats |
+| `nice` | Nice meal |
+| `cafe` | Cafés |
+| `bakery` | Bakeries |
+| `beer` | Beer bars |
+| `cocktail` | Fancy bars |
+
+- **City** picker at the top (once there's more than one city), then category chips, search, and **Open now**.
+- **List / Map** switch. The map uses OpenStreetMap and needs a connection; the list works offline.
+- Each place has **Directions** (Apple Maps on iPhone) and **Google Maps**, which has photos, reviews and up-to-date hours.
+- **Hours** are written one line per day or range, e.g. `Mon–Fri: 11:30–14:00, 17:00–22:00`, `Sat: 17:00–02:00` (past midnight is fine), `Sun: Closed`, or `Daily: 8:00–15:00`. Today's line is highlighted and the list shows *Open until …* / *Closed · opens …*. Hours drift, so `checked:` records the month they were last checked.
+- **Adding one:** tap +, type the name and city, then **Look up on OpenStreetMap**. It fills in the map location, plus the address, phone, website and hours when OpenStreetMap has them. Check what it found before saving.
+- **Map pins:** when a place is saved without `lat`/`lng`, a GitHub Action looks the address up and commits the coordinates. Until then the app looks it up on the phone. Use full street names (`Boulevard Saint-Laurent`, `Rue Rachel Est`) so the lookup finds them.
+- Why not pull data from Google automatically? Google's Places API needs a paid, billed API key, and a key stored in this public app could be used by anyone. OpenStreetMap is free and needs no key. The Google Maps button covers the rest.
+
+By hand: copy `templates/place.md` to `places/<city>/<short-name>.md`.
 
 ## Adding a recipe by hand
 

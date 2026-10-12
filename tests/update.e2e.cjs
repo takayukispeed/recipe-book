@@ -27,7 +27,7 @@ const server = http.createServer((req, res) => {
   await page.waitForFunction(() => navigator.serviceWorker.controller);
   await page.reload();                       // now running under the SW
   await page.waitForSelector(".segmented");
-  assert.deepEqual(await page.locator(".segmented a").allInnerTexts(), ["Recipes", "Staples"]);
+  assert.deepEqual(await page.locator(".segmented a").allInnerTexts(), ["Recipes", "Staples", "Places"]);
 
   // Publish a "new version": changed app code + bumped SW.
   const sw = fs.readFileSync(path.join(ROOT, "sw.js"), "utf8");
@@ -40,7 +40,7 @@ const server = http.createServer((req, res) => {
   await page.evaluate(() => navigator.serviceWorker.getRegistration().then((r) => r.update()));
   await reloaded;
   await page.waitForSelector(".segmented");
-  assert.deepEqual(await page.locator(".segmented a").allInnerTexts(), ["Recipes", "Staples NEW"]);
+  assert.deepEqual(await page.locator(".segmented a").allInnerTexts(), ["Recipes", "Staples NEW", "Places"]);
   assert.deepEqual(errors, []);
   console.log("update flow passed: new version loaded despite max-age=600");
   await b.close(); server.close();

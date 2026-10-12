@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate INDEX.md from the front matter of recipes/ and lists/.
+"""Regenerate INDEX.md from the front matter of recipes/, places/ and lists/.
 
 Usage: python3 scripts/build_index.py
 """
@@ -7,6 +7,9 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+# Same keys and labels as app/places.js.
+CATEGORIES = {"cheap": "Cheap eats", "nice": "Nice meal", "cafe": "Cafés", "bakery": "Bakeries",
+              "beer": "Beer bars", "cocktail": "Fancy bars"}
 
 
 def front_matter(path):
@@ -54,11 +57,31 @@ def main():
         links = ", ".join(f"[{r['title']}]({r['link']})" for r in by_tag[tag])
         out.append(f"- **{tag}**: {links}")
 
+    places = []
+    for path in sorted((ROOT / "places").glob("*/*.md")):
+        meta = front_matter(path)
+        meta.setdefault("name", path.stem)
+        meta["link"] = path.relative_to(ROOT).as_posix()
+        places.append(meta)
+    order = {k: i for i, k in enumerate(CATEGORIES)}
+    out += ["", "## Places", ""]
+    if not places:
+        out.append("_None yet._")
+    for city in sorted({p.get("city", "") for p in places}):
+        out += [f"### {city or 'Other'}", "", "| Place | Category | Neighbourhood | Address |", "|---|---|---|---|"]
+        here = [p for p in places if p.get("city", "") == city]
+        for p in sorted(here, key=lambda p: (order.get(p.get("category"), 99), p["name"].lower())):
+            label = CATEGORIES.get(p.get("category"), p.get("category", ""))
+            out.append(f"| [{p['name']}]({p['link']}) | {label} | {p.get('area', '')} | {p.get('address', '')} |")
+        out.append("")
+    if out[-1] == "":
+        out.pop()
+
     out += ["", "## Lists", ""]
     out += [f"- [{l['title']}]({l['link']})" for l in entries("lists")] or ["_None yet._"]
 
     (ROOT / "INDEX.md").write_text("\n".join(out) + "\n", encoding="utf-8")
-    print(f"INDEX.md: {len(recipes)} recipes")
+    print(f"INDEX.md: {len(recipes)} recipes, {len(places)} places")
 
 
 if __name__ == "__main__":

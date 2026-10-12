@@ -236,3 +236,41 @@ details summary { cursor: pointer; color: var(--accent); font-size: 15px; paddin
 }
 .list-actions { display: flex; justify-content: space-between; margin-top: 16px; }
 .list-actions .text-btn:only-child { margin-left: auto; }
+
+/* ---- Places ---- */
+:root { --open: #2e7d32; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --open: #7fc783; } }
+.place-tools { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+.place-tools select {
+  flex: 1; min-width: 0; padding: 9px 12px; font-size: 16px; font-weight: 600;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+}
+.city-name { flex: 1; font-weight: 600; }
+.place-tools .mode { margin: 0; flex: none; width: 150px; }
+.badge.cat { color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+.status-dot { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+.status-dot::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--done); }
+.status-dot.open { color: var(--open); }
+.status-dot.open::before { background: var(--open); }
+.status-dot.big { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.map { height: calc(100vh - 290px); min-height: 320px; margin-top: 12px; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); z-index: 0; }
+.map-note { font-size: 14px; color: var(--muted); text-align: center; margin: 6px 0 0; min-height: 1.4em; }
+.leaflet-popup-content { font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.leaflet-popup-content .open { color: #2e7d32; }
+.leaflet-popup-content .shut { color: #7a7065; }
+.place .actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 8px; margin: 16px 0 0; }
+.place .actions a {
+  display: grid; justify-items: center; gap: 4px; padding: 10px 4px; border-radius: 12px;
+  background: var(--surface); box-shadow: var(--shadow); text-decoration: none; font-size: 13px; font-weight: 600;
+}
+.place .actions .g { display: grid; place-items: center; width: 22px; height: 22px; font-size: 18px; font-weight: 700; line-height: 1; }
+.address { margin: 0; }
+.hours {
+  list-style: none; margin: 0; padding: 0;
+  background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
+}
+.hours li { padding: 10px 16px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.hours li:first-child { border-top: 0; }
+.hours li.today { font-weight: 600; background: var(--accent-soft); }
+.fine, .muted { font-size: 14px; color: var(--muted); }
+.lookup { margin: -6px 0 0; }

@@ -1,7 +1,7 @@
 name: Test
 on:
   push:
-    paths: ["app/**", "tests/**", "recipes/**", "lists/**"]
+    paths: ["app/**", "tests/**", "recipes/**", "places/**", "lists/**"]
   pull_request:
 jobs:
   format:
