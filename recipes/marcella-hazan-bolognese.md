@@ -25,7 +25,7 @@ Use a heavy pot that holds heat well (enamelled cast iron, or earthenware on a d
 - 1 cup (240 mL) whole milk
 - Whole nutmeg (about ⅛ tsp / 0.5 mL grated)
 - 1 cup (240 mL) dry white wine
-- 1½ cups (360 mL) canned Italian plum tomatoes, cut up, with their juice
+- 1½ cups (360 mL) canned Italian plum tomatoes, cut up, with their juice (honestly a full tin is better)
 - 1¼–1½ lb (570–680 g) pasta (tagliatelle, or a short tube such as rigatoni)
 - Freshly grated Parmigiano-Reggiano, at the table
 
